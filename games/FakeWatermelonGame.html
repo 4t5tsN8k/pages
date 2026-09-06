@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>フルーツ進化ゲーム - クリア判定版</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #fffae5;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            user-select: none;
+            touch-action: none;
+        }
+
+        canvas {
+            display: block;
+            margin: 0 auto;
+        }
+
+        /* スコア表示 */
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            pointer-events: none;
+        }
+
+        .score-box {
+            background: white;
+            padding: 10px 20px;
+            border-radius: 15px;
+            border: 4px solid #edc04d;
+            font-weight: bold;
+            color: #555;
+            box-shadow: 0 4px 0 #edc04d;
+        }
+
+        #score-val {
+            font-size: 24px;
+            color: #e67e22;
+        }
+
+        /* NEXTプレビュー */
+        #next-container {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            text-align: center;
+        }
+
+        .next-box {
+            background: white;
+            width: 80px;
+            height: 80px;
+            border-radius: 15px;
+            border: 4px solid #edc04d;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 0 #edc04d;
+        }
+
+        #next-fruit-view {
+            border-radius: 50%;
+        }
+
+        /* オーバーレイ共通 */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .modal {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 10px 0 #ccc;
+            max-width: 80%;
+        }
+
+        /* ゲームクリア画面の特別装飾 */
+        #game-clear-screen .modal {
+            border: 6px solid #f1c40f;
+            box-shadow: 0 10px 0 #d4ac0d;
+        }
+
+        .hidden { display: none !important; }
+
+        .btn {
+            padding: 12px 30px;
+            font-size: 18px;
+            background: #ff7675;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 15px;
+        }
+
+        .btn:active { transform: translateY(3px); }
+
+        .btn-clear {
+            background: #2ecc71;
+        }
+        .return-link {
+            margin-top: 15px;
+            text-align: center;
+        }
+        .return-link a {
+            color: #00aa66;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui">
+        <div class="score-box">SCORE: <span id="score-val">0</span></div>
+    </div>
+
+    <div id="next-container">
+        <div style="font-size: 12px; font-weight: bold; color: #555; margin-bottom: 5px;">NEXT</div>
+        <div class="next-box">
+            <div id="next-fruit-view"></div>
+        </div>
+    </div>
+
+    <div id="start-screen" class="overlay">
+        <div class="modal">
+            <h1 style="color: #e67e22;">フルーツパズル</h1>
+            <p>同じフルーツをくっつけて進化！<br>目指せ、最強の<strong>スイカ</strong>！</p>
+            <button id="start-btn" class="btn">ゲームスタート</button>
+            <div class="return-link"><a href="../">&lt;- return</a></div>
+        </div>
+    </div>
+
+    <div id="game-over-screen" class="overlay hidden">
+        <div class="modal">
+            <h1 style="color: #d63031;">GAME OVER</h1>
+            <p>最終スコア</p>
+            <div class="final-score-val" style="font-size: 40px; font-weight: bold; color: #e67e22;">0</div>
+            <button class="restart-btn btn">もう一度挑戦</button>
+            <div class="return-link"><a href="../">&lt;- return</a></div>
+        </div>
+    </div>
+
+    <div id="game-clear-screen" class="overlay hidden">
+        <div class="modal">
+            <h1 style="color: #f1c40f;">✨ GAME CLEAR ✨</h1>
+            <p style="font-weight: bold;">おめでとう！<br>スイカが完成しました！</p>
+            <p>最終スコア</p>
+            <div class="final-score-val" style="font-size: 40px; font-weight: bold; color: #e67e22;">0</div>
+            <button class="restart-btn btn btn-clear">もう一度あそぶ</button>
+            <div class="return-link"><a href="../">&lt;- return</a></div>
+        </div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        (() => {
+            const { Engine, Runner, Bodies, Composite, Events } = Matter;
+
+            const FRUITS = [
+                { name: "さくらんぼ", radius: 15, color: "#ff3031", score: 2 },
+                { name: "いちご", radius: 22, color: "#ff5e57", score: 4 },
+                { name: "ぶどう", radius: 30, color: "#a29bfe", score: 8 },
+                { name: "デコポン", radius: 38, color: "#fdcb6e", score: 16 },
+                { name: "かき", radius: 48, color: "#e67e22", score: 32 },
+                { name: "りんご", radius: 60, color: "#d63031", score: 64 },
+                { name: "なし", radius: 72, color: "#f9ca24", score: 128 },
+                { name: "もも", radius: 85, color: "#fab1a0", score: 256 },
+                { name: "パイナップル", radius: 100, color: "#ffeaa7", score: 512 },
+                { name: "メロン", radius: 120, color: "#55efc4", score: 1024 },
+                { name: "スイカ", radius: 145, color: "#26de81", score: 2048 } // クリア対象
+            ];
+
+            let engine, runner, canvas, ctx;
+            let width, height;
+            let currentFruit = null;
+            let nextFruitLevel = 0;
+            let score = 0;
+            let isPlaying = false;
+            let canDrop = true;
+            let mouseX = 0;
+            let isPressing = false;
+
+            const containerWidth = 350;
+            const deadlineY = 130;
+            const wallThickness = 100;
+
+            function init() {
+                canvas = document.getElementById('gameCanvas');
+                ctx = canvas.getContext('2d');
+                engine = Engine.create({ 
+                    positionIterations: 20, 
+                    velocityIterations: 20 
+                });
+                runner = Runner.create();
+
+                resize();
+                window.addEventListener('resize', resize);
+
+                // 操作イベント
+                canvas.addEventListener('pointerdown', (e) => {
+                    if (!isPlaying) return;
+                    isPressing = true;
+                    updatePosition(e);
+                });
+
+                window.addEventListener('pointermove', (e) => {
+                    if (!isPlaying) return;
+                    updatePosition(e);
+                });
+
+                window.addEventListener('pointerup', (e) => {
+                    if (!isPlaying || !isPressing) return;
+                    isPressing = false;
+                    updatePosition(e);
+                    dropFruit();
+                });
+
+                Events.on(engine, 'collisionStart', handleCollision);
+                
+                document.getElementById('start-btn').onclick = startGame;
+                document.querySelectorAll('.restart-btn').forEach(btn => {
+                    btn.onclick = startGame;
+                });
+
+                requestAnimationFrame(update);
+            }
+
+            function updatePosition(e) {
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const radius = currentFruit ? currentFruit.radius : 20;
+                const minX = (width - containerWidth) / 2 + radius;
+                const maxX = (width + containerWidth) / 2 - radius;
+                mouseX = Math.max(minX, Math.min(x, maxX));
+            }
+
+            function startGame() {
+                Composite.clear(engine.world);
+                score = 0;
+                isPlaying = true;
+                canDrop = true;
+                isPressing = false;
+                document.getElementById('score-val').innerText = "0";
+                document.getElementById('start-screen').classList.add('hidden');
+                document.getElementById('game-over-screen').classList.add('hidden');
+                document.getElementById('game-clear-screen').classList.add('hidden');
+
+                const centerX = width / 2;
+                const groundY = height - 50;
+
+                const ground = Bodies.rectangle(centerX, groundY + wallThickness/2, containerWidth, wallThickness, { 
+                    isStatic: true, friction: 0.1, render: { fillStyle: '#edc04d' } 
+                });
+                const wallL = Bodies.rectangle(centerX - containerWidth / 2 - wallThickness/2, groundY - 250, wallThickness, 700, { 
+                    isStatic: true, friction: 0.1, render: { fillStyle: '#edc04d' } 
+                });
+                const wallR = Bodies.rectangle(centerX + containerWidth / 2 + wallThickness/2, groundY - 250, wallThickness, 700, { 
+                    isStatic: true, friction: 0.1, render: { fillStyle: '#edc04d' } 
+                });
+
+                Composite.add(engine.world, [ground, wallL, wallR]);
+                nextFruitLevel = Math.floor(Math.random() * 4);
+                spawnNext();
+                Runner.run(runner, engine);
+            }
+
+            function spawnNext() {
+                if (!isPlaying) return;
+                const level = nextFruitLevel;
+                nextFruitLevel = Math.floor(Math.random() * 4);
+
+                const nextView = document.getElementById('next-fruit-view');
+                nextView.style.backgroundColor = FRUITS[nextFruitLevel].color;
+                nextView.style.width = (FRUITS[nextFruitLevel].radius * 1.5) + "px";
+                nextView.style.height = (FRUITS[nextFruitLevel].radius * 1.5) + "px";
+
+                currentFruit = { level, ...FRUITS[level] };
+                canDrop = true;
+            }
+
+            function dropFruit() {
+                if (!canDrop || !currentFruit) return;
+
+                const fruitBody = Bodies.circle(mouseX, deadlineY - 60, currentFruit.radius, {
+                    label: "fruit_" + currentFruit.level,
+                    restitution: 0.3,
+                    friction: 0.1,
+                    slop: 0,
+                    render: { fillStyle: currentFruit.color }
+                });
+
+                fruitBody.spawnedAt = Date.now();
+                Composite.add(engine.world, fruitBody);
+                currentFruit = null;
+                canDrop = false;
+
+                setTimeout(() => {
+                    if (isPlaying) spawnNext();
+                }, 600);
+            }
+
+            function handleCollision(event) {
+                event.pairs.forEach(pair => {
+                    const { bodyA, bodyB } = pair;
+                    if (bodyA.label && bodyA.label === bodyB.label && bodyA.label.startsWith("fruit_")) {
+                        const level = parseInt(bodyA.label.split("_")[1]);
+                        
+                        // スイカ（最終段階）でなければ進化させる
+                        if (level < FRUITS.length - 1) {
+                            const newLevel = level + 1;
+                            const midX = (bodyA.position.x + bodyB.position.x) / 2;
+                            const midY = (bodyA.position.y + bodyB.position.y) / 2;
+
+                            Composite.remove(engine.world, [bodyA, bodyB]);
+                            
+                            const evolved = Bodies.circle(midX, midY, FRUITS[newLevel].radius, {
+                                label: "fruit_" + newLevel,
+                                render: { fillStyle: FRUITS[newLevel].color }
+                            });
+                            
+                            evolved.spawnedAt = 0; // 進化したフルーツは即判定対象にする
+                            Composite.add(engine.world, evolved);
+                            
+                            score += FRUITS[newLevel].score;
+                            document.getElementById('score-val').innerText = score;
+
+                            // スイカが完成したかチェック
+                            if (newLevel === FRUITS.length - 1) {
+                                endGame(true); // ゲームクリア
+                            }
+                        }
+                    }
+                });
+            }
+
+            function update() {
+                if (isPlaying) checkGameOver();
+                render();
+                requestAnimationFrame(update);
+            }
+
+            function checkGameOver() {
+                const bodies = Composite.allBodies(engine.world);
+                const now = Date.now();
+
+                for (let body of bodies) {
+                    if (body.isStatic) continue;
+                    if (body.spawnedAt && now - body.spawnedAt < 1000) continue;
+
+                    const fruitTop = body.position.y - body.circleRadius;
+                    if (fruitTop < deadlineY) {
+                        endGame(false); // ゲームオーバー
+                        break;
+                    }
+                }
+            }
+
+            function endGame(isClear) {
+                isPlaying = false;
+                Runner.stop(runner);
+
+                const finalScoreElements = document.querySelectorAll('.final-score-val');
+                finalScoreElements.forEach(el => el.innerText = score);
+
+                if (isClear) {
+                    document.getElementById('game-clear-screen').classList.remove('hidden');
+                } else {
+                    document.getElementById('game-over-screen').classList.remove('hidden');
+                }
+            }
+
+            function render() {
+                ctx.clearRect(0, 0, width, height);
+
+                // デッドライン描画
+                if (isPlaying) {
+                    ctx.beginPath();
+                    ctx.moveTo((width - containerWidth) / 2, deadlineY);
+                    ctx.lineTo((width + containerWidth) / 2, deadlineY);
+                    ctx.strokeStyle = "#e74c3c";
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([5, 5]);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+
+                // フルーツ描画
+                Composite.allBodies(engine.world).forEach(body => {
+                    ctx.beginPath();
+                    const vertices = body.vertices;
+                    ctx.moveTo(vertices[0].x, vertices[0].y);
+                    for (let i = 1; i < vertices.length; i++) ctx.lineTo(vertices[i].x, vertices[i].y);
+                    ctx.closePath();
+                    ctx.fillStyle = body.render.fillStyle;
+                    ctx.fill();
+                });
+
+                // ガイドフルーツ
+                if (currentFruit) {
+                    ctx.save();
+                    ctx.globalAlpha = isPressing ? 1.0 : 0.6;
+                    ctx.beginPath();
+                    ctx.arc(mouseX, deadlineY - 60, currentFruit.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = currentFruit.color;
+                    ctx.fill();
+
+                    ctx.beginPath();
+                    ctx.setLineDash([2, 4]);
+                    ctx.moveTo(mouseX, deadlineY - 60);
+                    ctx.lineTo(mouseX, height - 60);
+                    ctx.strokeStyle = "rgba(0,0,0,0.1)";
+                    ctx.stroke();
+                    ctx.restore();
+                }
+            }
+
+            function resize() {
+                width = window.innerWidth;
+                height = window.innerHeight;
+                canvas.width = width;
+                canvas.height = height;
+                if (!mouseX) mouseX = width / 2;
+            }
+
+            init();
+        })();
+    </script>
+</body>
+</html>

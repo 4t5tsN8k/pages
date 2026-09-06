@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>人生の残り時間チェッカー</title>
+	<style>
+		:root {
+			--primary-color: #4a90e2;
+			--background-color: #f5f7fa;
+			--card-color: #ffffff;
+			--text-color: #333333;
+			--accent-color: #e94e77;
+		}
+
+		body {
+			font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+			background-color: var(--background-color);
+			color: var(--text-color);
+			margin: 0;
+			padding: 20px;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			min-height: 100vh;
+			box-sizing: border-box;
+		}
+
+		.container {
+			background-color: var(--card-color);
+			padding: 30px;
+			border-radius: 16px;
+			box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+			width: 100%;
+			max-width: 500px;
+		}
+
+		h1 {
+			font-size: 24px;
+			text-align: center;
+			margin-bottom: 25px;
+			color: #2c3e50;
+		}
+
+		.form-group {
+			margin-bottom: 20px;
+		}
+
+		label {
+			display: block;
+			font-weight: bold;
+			margin-bottom: 8px;
+			font-size: 14px;
+		}
+
+		input[type="date"] {
+			width: 100%;
+			padding: 12px;
+			border: 1px solid #ccc;
+			border-radius: 8px;
+			font-size: 16px;
+			box-sizing: border-box;
+		}
+
+		.radio-group {
+			display: flex;
+			gap: 20px;
+			margin-top: 5px;
+		}
+
+		.radio-label {
+			display: flex;
+			align-items: center;
+			gap: 6px;
+			cursor: pointer;
+			font-weight: normal;
+		}
+
+		button {
+			width: 100%;
+			background-color: var(--primary-color);
+			color: white;
+			border: none;
+			padding: 14px;
+			font-size: 16px;
+			font-weight: bold;
+			border-radius: 8px;
+			cursor: pointer;
+			transition: background-color 0.2s;
+		}
+
+		button:hover {
+			background-color: #357abd;
+		}
+
+		.result-container {
+			display: none;
+			margin-top: 30px;
+			border-top: 2px dashed #eee;
+			padding-top: 20px;
+		}
+
+		.result-title {
+			font-size: 18px;
+			font-weight: bold;
+			text-align: center;
+			margin-bottom: 20px;
+			color: #2c3e50;
+		}
+
+		.main-days {
+			text-align: center;
+			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+			color: white;
+			padding: 20px;
+			border-radius: 12px;
+			margin-bottom: 15px;
+		}
+
+		.main-days .count {
+			font-size: 36px;
+			font-weight: bold;
+			display: block;
+			margin-top: 5px;
+		}
+
+		/* 追加した月数・週数用のスタイル */
+		.sub-time-container {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 15px;
+			margin-bottom: 25px;
+		}
+
+		.sub-time-card {
+			background-color: #edf2f7;
+			padding: 12px;
+			border-radius: 10px;
+			text-align: center;
+			font-size: 14px;
+			color: #4a5568;
+			font-weight: bold;
+		}
+
+		.sub-time-card span {
+			display: block;
+			font-size: 22px;
+			color: #2b6cb0;
+			margin-top: 4px;
+		}
+
+		.grid-results {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 15px;
+		}
+
+		.card {
+			background-color: #f8f9fa;
+			padding: 15px;
+			border-radius: 10px;
+			border-left: 4px solid var(--primary-color);
+		}
+
+		.card.newYear { border-left-color: #ffb7c5; }
+		.card.olympic { border-left-color: #f39c12; }
+		.card.meal { border-left-color: #2ecc71; }
+		.card.unko { border-left-color: #8b5a2b; }
+
+		.card-title {
+			font-size: 12px;
+			color: #7f8c8d;
+			margin-bottom: 5px;
+		}
+
+		.card-value {
+			font-size: 20px;
+			font-weight: bold;
+			color: #333;
+		}
+		/* リンク */
+		.footer-link {
+			margin-top: 20px;
+			padding-left: 8px;
+		}
+
+		.footer-link a {
+			color: #5a3a2b;
+			text-decoration: none;
+			font-size: 0.7rem;
+			transition: color 0.2s;
+		}
+
+		.footer-link a:hover {
+			color: var(--accent);
+		}
+		.message {
+			display: none;
+			text-align: center;
+			background-color: #e8f8f5;
+			color: #117a65;
+			padding: 15px;
+			border-radius: 8px;
+			margin-top: 20px;
+			font-weight: bold;
+		}
+	</style>
+</head>
+<body>
+
+<div class="container">
+	<h1>人生の残り時間チェッカー</h1>
+	
+	<div class="form-group">
+		<label for="birthDate">生年月日</label>
+		<input type="date" id="birthDate" max="2026-12-31">
+	</div>
+
+	<div class="form-group">
+		<label>性別</label>
+		<div class="radio-group">
+			<label class="radio-label"><input type="radio" name="gender" value="male" checked> 男性</label>
+			<label class="radio-label"><input type="radio" name="gender" value="female"> 女性</label>
+		</div>
+	</div>
+
+	<button onclick="calculateRemainingLife()">計算する</button>
+
+	<div id="bonusMessage" class="message"></div>
+
+	<div id="result" class="result-container">
+		<div class="result-title">あなたの残りの人生の目安</div>
+		
+		<!-- メイン：残り日数 -->
+		<div class="main-days">
+			平均寿命までの残り日数
+			<span id="daysLeft" class="count">0</span>
+		</div>
+
+		<!-- 追加：残り月数・残り週数 -->
+		<div class="sub-time-container">
+			<div class="sub-time-card">
+				残り月数
+				<span id="monthsLeft">0</span>
+			</div>
+			<div class="sub-time-card">
+				残り週数
+				<span id="weeksLeft">0</span>
+			</div>
+		</div>
+
+		<div class="grid-results">
+			<div class="card newYear">
+				<div class="card-title">🎍 正月の回数</div>
+				<div class="card-value"><span id="newYearCount">0</span>回</div>
+			</div>
+			<div class="card olympic">
+				<div class="card-title">🏅 オリンピックの回数</div>
+				<div class="card-value"><span id="olympicCount">0</span>回</div>
+			</div>
+			<div class="card meal">
+				<div class="card-title">🍚 ご飯を食べる回数</div>
+				<div class="card-value"><span id="mealCount">0</span>回</div>
+			</div>
+			<div class="card unko">
+				<div class="card-title">💩 うんこをする回数</div>
+				<div class="card-value"><span id="unkoCount">0</span>回</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="footer-link">
+		<a href="../">← RETURN</a>
+	</div>
+</div>
+
+<script>
+	function calculateRemainingLife() {
+		const birthDateInput = document.getElementById('birthDate').value;
+		const gender = document.querySelector('input[name="gender"]:checked').value;
+
+		if (!birthDateInput) {
+			alert('生年月日を入力してください。');
+			return;
+		}
+
+		const birthDate = new Date(birthDateInput);
+		const today = new Date();
+
+		// 日本の一般的な平均寿命（男性: 81歳、女性: 87歳として設定）
+		const averageAge = gender === 'male' ? 81 : 87;
+
+		// 寿命を迎える予定の年を計算
+		const deathDate = new Date(birthDate.getTime());
+		deathDate.setFullYear(birthDate.getFullYear() + averageAge);
+
+		// 残り日数の計算 (ミリ秒から日数へ変換)
+		const diffTime = deathDate - today;
+		const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+		const resultDiv = document.getElementById('result');
+		const bonusMessage = document.getElementById('bonusMessage');
+
+		// すでに平均寿命を超えている場合の処理
+		if (diffDays <= 0) {
+			resultDiv.style.display = 'none';
+			bonusMessage.style.display = 'block';
+			bonusMessage.innerHTML = `🎉 おめでとうございます！すでに平均寿命（${averageAge}歳）を超えて元気に募集中です！これからの毎日はすべてボーナスタイムです！`;
+			return;
+		}
+
+		// 通常パターンの表示
+		bonusMessage.style.display = 'none';
+		resultDiv.style.display = 'block';
+
+		// 追加：日数から月数と週数を逆算（端数は切り捨て）
+		const monthsLeft = Math.floor(diffDays / 30.4375); // 1ヶ月＝平均30.4375日
+		const weeksLeft = Math.floor(diffDays / 7);			// 1週間＝7日
+
+		// 残り年数の概算（イベント用）
+		const remainingYears = diffDays / 365.25;
+
+		// 各種データの計算
+		const newYear = Math.floor(remainingYears); 
+		const olympic = Math.floor(remainingYears / 4); 
+		const meals = diffDays * 3; 
+		const unko = diffDays * 1; 
+
+		// 画面に数値を反映（カンマ区切りで出力）
+		document.getElementById('daysLeft').innerText = diffDays.toLocaleString() + ' 日';
+		document.getElementById('monthsLeft').innerText = monthsLeft.toLocaleString() + ' ヶ月';
+		document.getElementById('weeksLeft').innerText = weeksLeft.toLocaleString() + ' 週';
+		
+		document.getElementById('newYearCount').innerText = newYear.toLocaleString();
+		document.getElementById('olympicCount').innerText = olympic.toLocaleString();
+		document.getElementById('mealCount').innerText = meals.toLocaleString();
+		document.getElementById('unkoCount').innerText = unko.toLocaleString();
+	}
+</script>
+
+</body>

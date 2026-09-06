@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>面積変換ツール</title>
+
+<style>
+* { box-sizing: border-box; }
+
+body {
+    font-family: Arial, sans-serif;
+    padding: 15px;
+    background: #f5f5f5;
+    margin: 0;
+}
+
+.container {
+    background: white;
+    padding: clamp(15px, 4vw, 25px);
+    border-radius: 12px;
+    max-width: 480px;
+    margin: auto;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+}
+
+h2 {
+    text-align: center;
+    margin-top: 0;
+}
+
+select, input, button {
+    padding: 14px;
+    margin-top: 10px;
+    width: 100%;
+    font-size: 16px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+}
+
+button {
+    background: #4a90e2;
+    color: white;
+    border: none;
+    font-weight: bold;
+}
+
+.result {
+    margin-top: 18px;
+    font-weight: bold;
+    line-height: 2;
+}
+
+.note {
+    font-size: 0.8rem;
+    color: gray;
+    margin-top: 10px;
+}
+
+.return-link {
+    margin-top: 15px;
+    text-align: center;
+}
+
+.return-link a {
+    color: #00aa66;
+    text-decoration: none;
+    font-size: 0.9rem;
+}
+
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<h2>面積変換ツール 📏</h2>
+
+<select id="unit">
+<option value="sqm">平方メートル (m²)</option>
+<option value="hectare">ヘクタール (ha)</option>
+<option value="acre">エーカー</option>
+<option value="tsubo">坪</option>
+<option value="tatami">畳</option>
+<option value="tennis">テニスコート</option>
+<option value="koshien">甲子園</option>
+</select>
+
+<input type="number" id="value" placeholder="数値を入力">
+
+<button onclick="convert()">変換</button>
+
+<div class="result" id="result"></div>
+
+<div class="note">
+※ 畳1枚=1.62㎡ / テニスコート=260㎡ / 甲子園=38,500㎡
+</div>
+
+<div class="return-link">
+<a href="../">&lt;- return</a>
+</div>
+
+</div>
+
+<script>
+function convert() {
+    const value = parseFloat(document.getElementById("value").value);
+    const unit = document.getElementById("unit").value;
+    const resultDiv = document.getElementById("result");
+
+    if (!value) {
+        resultDiv.innerHTML = "数値を入力してください";
+        return;
+    }
+
+    // まず平方メートルに変換
+    let sqm;
+
+    switch(unit) {
+        case "sqm": sqm = value; break;
+        case "hectare": sqm = value * 10000; break;
+        case "acre": sqm = value * 4046.856; break;
+        case "tsubo": sqm = value * 3.3058; break;
+        case "tatami": sqm = value * 1.62; break;
+        case "tennis": sqm = value * 260; break;
+        case "koshien": sqm = value * 38500; break;
+    }
+
+    // 各単位へ変換
+    const hectare = sqm / 10000;
+    const acre = sqm / 4046.856;
+    const tsubo = sqm / 3.3058;
+    const tatami = sqm / 1.62;
+    const tennis = sqm / 260;
+    const koshien = sqm / 38500;
+
+    resultDiv.innerHTML = `
+📐 平方メートル: ${sqm.toLocaleString()} m²<br>
+🌍 ヘクタール: ${hectare.toLocaleString(undefined,{maximumFractionDigits:3})} ha<br>
+🇺🇸 エーカー: ${acre.toLocaleString(undefined,{maximumFractionDigits:3})}<br>
+🏠 坪: ${tsubo.toLocaleString(undefined,{maximumFractionDigits:2})} 坪<br>
+🟩 畳: ${tatami.toLocaleString(undefined,{maximumFractionDigits:1})} 畳<br>
+🎾 テニスコート: ${tennis.toLocaleString(undefined,{maximumFractionDigits:2})} 面分<br>
+⚾ 甲子園: ${koshien.toLocaleString(undefined,{maximumFractionDigits:3})} 個分
+`;
+}
+</script>
+
+</body>
+</html>

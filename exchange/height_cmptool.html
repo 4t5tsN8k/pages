@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高さ比較ツール</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
+            margin: 0;
+            padding: 12px;
+            background: #f5f5f5;
+        }
+
+        .container {
+            max-width: 520px;
+            margin: auto;
+            background: #fff;
+            padding: 16px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+
+        h2 {
+            text-align: center;
+            margin: 4px 0 12px;
+            font-size: 20px;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        input,
+        select,
+        button {
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+            border-radius: 10px;
+            border: 1px solid #ddd;
+        }
+
+        button {
+            background: #4a90e2;
+            color: white;
+            border: none;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .item {
+            margin-top: 14px;
+        }
+
+        .row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 15px;
+            font-weight: 500;
+        }
+
+        .bar-bg {
+            background: #eee;
+            height: 12px;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-top: 6px;
+        }
+
+        .bar {
+            height: 100%;
+            background: linear-gradient(90deg, #4facfe, #00f2fe);
+        }
+
+        .history {
+            margin-top: 22px;
+        }
+
+        .history h3 {
+            margin-bottom: 6px;
+            font-size: 16px;
+        }
+
+        .history-item {
+            background: #fafafa;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 6px;
+            font-size: 14px;
+        }
+
+        .return-link {
+            margin-top: 15px;
+            text-align: center;
+        }
+
+        .return-link a {
+            color: #00aa66;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h2>高さ比較ツール 📏</h2>
+
+        <div class="input-row">
+            <input type="number" id="value" placeholder="数値">
+            <select id="unit">
+                <option value="m">m</option>
+                <option value="cm">cm</option>
+                <option value="km">km</option>
+            </select>
+        </div>
+
+        <button onclick="calc()">比較する</button>
+
+        <div id="result"></div>
+
+        <div class="history">
+            <h3>履歴</h3>
+            <div id="history"></div>
+        </div>
+
+        <div class="return-link">
+            <a href="../">&lt;- return</a>
+        </div>
+    </div>
+
+    <script>
+        const objects = [
+            { name: "✏️ 鉛筆", height: 0.175, label: "17.5cm" },
+            { name: "🧍 人間", height: 1.7, label: "1.7m" },
+            { name: "🚏 電柱", height: 8, label: "8m" },
+            { name: "🤖 ザク", height: 17.5, label: "17.5m" },
+            { name: "🏢 10階建てビル", height: 30, label: "30m" },
+            { name: "🏗 通天閣", height: 103, label: "103m" },
+            { name: "🔺 ピラミッド", height: 146.6, label: "146.6m" },
+            { name: "🗼 スカイツリー", height: 634, label: "634m" },
+            { name: "🗻 富士山", height: 3776, label: "3776m" },
+            { name: "🏔 エベレスト", height: 8848, label: "8848m" }
+        ];
+
+        let histories = [];
+
+        function calc() {
+            let v = parseFloat(document.getElementById("value").value);
+            const unit = document.getElementById("unit").value;
+
+            if (!v) return;
+
+            if (unit === "cm") v /= 100;
+            if (unit === "km") v *= 1000;
+
+            let html = "";
+
+            objects.forEach(o => {
+                const n = v / o.height;
+                const percent = Math.min((o.height / v) * 100, 100);
+
+                html += `
+<div class="item">
+    <div class="row">
+        <div>${o.name} (${o.label})</div>
+        <div>${n.toFixed(2)} 個分</div>
+    </div>
+    <div class="bar-bg">
+        <div class="bar" style="width:${percent}%"></div>
+    </div>
+</div>
+`;
+            });
+
+            document.getElementById("result").innerHTML = html;
+
+            addHistory(v, unit);
+        }
+
+        function addHistory(v, unit) {
+            const text = `${v} ${unit}`;
+            histories.unshift(text);
+            if (histories.length > 5) histories.pop();
+
+            const historyDiv = document.getElementById("history");
+            historyDiv.innerHTML = "";
+
+            histories.forEach(h => {
+                const div = document.createElement("div");
+                div.className = "history-item";
+                div.textContent = h;
+                historyDiv.appendChild(div);
+            });
+        }
+    </script>
+</body>
+</html>

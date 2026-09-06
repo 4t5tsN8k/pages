@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>瞬発カラー脳トレ</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 24px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 90%;
+            max-width: 400px;
+        }
+        h1 {
+            margin: 0 0 10px 0;
+            font-size: 24px;
+            color: #333;
+        }
+        .instructions {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 16px;
+        }
+
+        /* ハイスコアボード */
+        .highscore-box {
+            background-color: #fffaf0;
+            border: 1px solid #feebc8;
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 16px;
+            font-size: 14px;
+            color: #744210;
+            font-weight: bold;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 16px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #444;
+        }
+        .word-display {
+            font-size: 48px;
+            font-weight: bold;
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px dashed #ccc;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            background-color: #fafafa;
+        }
+
+        /* 結果表示パネル */
+        .result-panel {
+            background-color: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+        .result-score {
+            font-size: 28px;
+            font-weight: bold;
+            color: #2b6cb0;
+            margin-bottom: 8px;
+        }
+        .result-details {
+            display: flex;
+            justify-content: space-around;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .result-correct { color: #38a169; }
+        .result-wrong { color: #e53e3e; }
+        .new-record {
+            color: #d69e2e;
+            font-weight: bold;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+
+        .buttons-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .btn {
+            padding: 16px;
+            font-size: 18px;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.2s;
+            color: white;
+            touch-action: manipulation;
+        }
+        .btn:active {
+            transform: scale(0.96);
+        }
+        .btn-red { background-color: #e74c3c; }
+        .btn-blue { background-color: #3498db; }
+        .btn-green { background-color: #2ecc71; }
+        .btn-yellow { background-color: #f1c40f; color: #333; }
+        
+        .start-btn {
+            width: 100%;
+            padding: 16px;
+            font-size: 20px;
+            font-weight: bold;
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(74, 144, 226, 0.3);
+        }
+        .start-btn:active {
+            transform: scale(0.98);
+        }
+        .hidden {
+            display: none !important;
+        }
+        .return-link {
+            margin-top: 15px;
+            text-align: center;
+        }
+        .return-link a {
+            color: #00aa66;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>脳トレ！カラー判定</h1>
+    <p class="instructions">文字の「意味」ではなく、<br><strong>「文字の色」</strong>を選んでください！</p>
+
+    <!-- ハイスコア表示 -->
+    <div class="highscore-box">
+        🏆 自己ベスト: <span id="highscore-val">0</span> 点
+    </div>
+
+    <!-- 結果表示パネル -->
+    <div id="result-panel" class="result-panel hidden">
+        <div id="result-score" class="result-score">0点</div>
+        <div class="result-details">
+            <div class="result-correct">正解: <span id="correct-count">0</span>回</div>
+            <div class="result-wrong">間違い: <span id="wrong-count">0</span>回</div>
+        </div>
+        <div id="new-record-msg" class="new-record hidden">🎉 自己ベスト更新！</div>
+    </div>
+
+    <div class="stats">
+        <div>残り時間: <span id="time">30</span>s</div>
+        <div>スコア: <span id="score">0</span></div>
+    </div>
+
+    <div id="word" class="word-display">READY?</div>
+
+    <button id="start-btn" class="start-btn" onclick="startGame()">スタート</button>
+
+    <div id="controls" class="buttons-grid hidden">
+        <button class="btn btn-red" onclick="checkAnswer('red')">赤</button>
+        <button class="btn btn-blue" onclick="checkAnswer('blue')">青</button>
+        <button class="btn btn-green" onclick="checkAnswer('green')">緑</button>
+        <button class="btn btn-yellow" onclick="checkAnswer('yellow')">黄</button>
+    </div>
+
+    <div class="return-link"><a href="../">&lt;- return</a></div>
+</div>
+
+
+<script>
+    const colors = [
+        { name: '赤', value: 'red', hex: '#e74c3c' },
+        { name: '青', value: 'blue', hex: '#3498db' },
+        { name: '緑', value: 'green', hex: '#2ecc71' },
+        { name: '黄', value: 'yellow', hex: '#f1c40f' }
+    ];
+
+    let score = 0;
+    let correctCount = 0;
+    let wrongCount = 0;
+    let timeLeft = 30;
+    let timer = null;
+    let currentColorValue = '';
+
+    const wordEl = document.getElementById('word');
+    const scoreEl = document.getElementById('score');
+    const timeEl = document.getElementById('time');
+    const startBtn = document.getElementById('start-btn');
+    const controlsEl = document.getElementById('controls');
+    const resultPanelEl = document.getElementById('result-panel');
+    const highscoreValEl = document.getElementById('highscore-val');
+
+    // 起動時にハイスコア読み込み
+    updateHighScoreDisplay();
+
+    function updateHighScoreDisplay() {
+        const savedScore = localStorage.getItem('color_game_highscore') || 0;
+        highscoreValEl.textContent = savedScore;
+    }
+
+    function startGame() {
+        score = 0;
+        correctCount = 0;
+        wrongCount = 0;
+        timeLeft = 30;
+
+        scoreEl.textContent = score;
+        timeEl.textContent = timeLeft;
+
+        resultPanelEl.classList.add('hidden');
+        startBtn.classList.add('hidden');
+        controlsEl.classList.remove('hidden');
+
+        nextQuestion();
+
+        timer = setInterval(() => {
+            timeLeft--;
+            timeEl.textContent = timeLeft;
+            if (timeLeft <= 0) {
+                endGame();
+            }
+        }, 1000);
+    }
+
+    function nextQuestion() {
+        const textObj = colors[Math.floor(Math.random() * colors.length)];
+        const colorObj = colors[Math.floor(Math.random() * colors.length)];
+
+        wordEl.textContent = textObj.name;
+        wordEl.style.color = colorObj.hex;
+        
+        currentColorValue = colorObj.value;
+    }
+
+    function checkAnswer(selectedColor) {
+        if (selectedColor === currentColorValue) {
+            score += 10;
+            correctCount++;
+        } else {
+            score = Math.max(0, score - 5);
+            wrongCount++;
+        }
+        scoreEl.textContent = score;
+        nextQuestion();
+    }
+
+    function endGame() {
+        clearInterval(timer);
+        wordEl.textContent = 'FINISH!';
+        wordEl.style.color = '#333';
+        
+        controlsEl.classList.add('hidden');
+        
+        // ハイスコア判定と保存
+        const currentHighScore = parseInt(localStorage.getItem('color_game_highscore') || '0', 10);
+        const newRecordMsg = document.getElementById('new-record-msg');
+
+        if (score > currentHighScore) {
+            localStorage.setItem('color_game_highscore', score);
+            newRecordMsg.classList.remove('hidden');
+        } else {
+            newRecordMsg.classList.add('hidden');
+        }
+
+        updateHighScoreDisplay();
+
+        // 結果パネルの設定
+        document.getElementById('result-score').textContent = `${score} 点`;
+        document.getElementById('correct-count').textContent = correctCount;
+        document.getElementById('wrong-count').textContent = wrongCount;
+
+        resultPanelEl.classList.remove('hidden');
+        startBtn.classList.remove('hidden');
+        startBtn.textContent = 'もう一度プレイ';
+    }
+</script>
+
+</body>
+</html>

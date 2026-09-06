@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>定時退社できるか計算ツール</title>
+	<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-800 p-4 sm:p-6">
+	<div class="max-w-xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-100">
+		<!-- ヘッダー -->
+		<div class="bg-indigo-600 text-white p-6 text-center">
+			<h1 class="text-2xl font-bold">定時退社できるか計算ツール</h1>
+		</div>
+
+		<div class="p-6 space-y-6">
+			<!-- 設定：始業時間 ＆ 定時退社時刻 -->
+			<div class="bg-slate-50 p-4 rounded-xl border border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-4">
+				<div>
+					<label for="workStartTime" class="block font-semibold text-sm text-slate-700 mb-1">始業時間の時刻</label>
+					<input type="time" id="workStartTime" value="08:30" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-lg font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+				</div>
+				<div>
+					<label for="workEndTime" class="block font-semibold text-sm text-slate-700 mb-1">定時退社の時刻</label>
+					<input type="time" id="workEndTime" value="17:30" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-lg font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+				</div>
+			</div>
+
+			<!-- ステータス表示（縦並び） -->
+			<div id="statusCard" class="p-4 rounded-xl border transition-all duration-300 bg-emerald-50 border-emerald-200 text-emerald-900">
+				<div class="flex flex-col gap-3">
+					<div class="text-sm font-semibold border-b border-emerald-100 pb-2">今日の残り時間: <span id="remainingTimeDisplay" class="font-bold text-lg text-indigo-600 block">--:--</span></div>
+					<div class="text-sm font-semibold">タスク合計: <span id="totalTaskTimeDisplay" class="font-bold text-lg text-indigo-600 block">0時間0分</span></div>
+				</div>
+				<div id="statusMessage" class="text-sm font-bold mt-3 flex items-center gap-1.5"></div>
+			</div>
+
+			<!-- タスク追加 -->
+			<form id="taskForm" class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4">
+				<h2 class="font-bold text-sm text-slate-700">タスクを追加</h2>
+				<input type="text" id="taskName" placeholder="タスク名" required class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+				
+				<div class="grid grid-cols-2 gap-4">
+					<div>
+						<label class="block text-xs text-slate-500 mb-1">時間</label>
+						<select id="taskHours" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+							<option value="0">0時間</option>
+							<option value="1">1時間</option>
+							<option value="2">2時間</option>
+							<option value="3">3時間</option>
+							<option value="4">4時間</option>
+							<option value="5">5時間</option>
+							<option value="6">6時間</option>
+							<option value="7">7時間</option>
+							<option value="8">8時間</option>
+							<option value="9">9時間</option>
+						</select>
+					</div>
+					<div>
+						<label class="block text-xs text-slate-500 mb-1">分 (5分単位)</label>
+						<select id="taskMinutes" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+							<option value="0">0分</option>
+							<option value="5">5分</option>
+							<option value="10">10分</option>
+							<option value="15">15分</option>
+							<option value="20">20分</option>
+							<option value="25">25分</option>
+							<option value="30" selected>30分</option>
+							<option value="35">35分</option>
+							<option value="40">40分</option>
+							<option value="45">45分</option>
+							<option value="50">50分</option>
+							<option value="55">55分</option>
+						</select>
+					</div>
+				</div>
+
+				<div class="flex items-center justify-between pt-1">
+					<label class="flex items-center gap-2 cursor-pointer text-sm text-slate-700"><input type="checkbox" id="taskRoutine" class="w-4 h-4 text-indigo-600 rounded"> ルーチン</label>
+					<button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-2 rounded-lg text-sm shadow-sm">追加</button>
+				</div>
+			</form>
+
+			<!-- リスト -->
+			<div class="space-y-3">
+				<div class="flex justify-between items-center">
+					<h2 class="font-bold text-sm text-slate-700">タスク一覧</h2>
+					<button type="button" id="clearNonRoutineBtn" class="text-xs text-rose-600 underline font-medium">ルーチン以外をクリア</button>
+				</div>
+				<div id="taskList" class="space-y-2"></div>
+			</div>
+		</div>
+<div style="margin-top:20px; text-align:center;">
+    <a href="../" style="color:#00ff41; text-decoration:none; font-size:1rem;">
+        <- return
+    </a>
+</div>
+	</div>
+
+	<script>
+		let tasks = JSON.parse(localStorage.getItem('teiji_tasks') || '[]');
+		let workStartTime = localStorage.getItem('teiji_workStartTime') || "09:00";
+		let workEndTime = localStorage.getItem('teiji_workEndTime') || "18:00";
+		let editingId = null;
+
+		const taskListEl = document.getElementById('taskList');
+		const workStartTimeInput = document.getElementById('workStartTime');
+		const workEndTimeInput = document.getElementById('workEndTime');
+		
+		workStartTimeInput.value = workStartTime;
+		workEndTimeInput.value = workEndTime;
+
+		function createOptions(selectedVal, max, isHour = true) {
+			let html = '';
+			const step = isHour ? 1 : 5;
+			for (let i = 0; i <= max; i += step) {
+				const label = isHour ? `${i}時間` : `${i}分`;
+				const sel = Number(selectedVal) === i ? 'selected' : '';
+				html += `<option value="${i}" ${sel}>${label}</option>`;
+			}
+			return html;
+		}
+
+		function updateUI() {
+			taskListEl.innerHTML = '';
+			if (tasks.length === 0) {
+				taskListEl.innerHTML = `<p class="text-center py-6 text-slate-400 text-sm">タスクがありません</p>`;
+			}
+
+			tasks.forEach(t => {
+				const isEditing = editingId === t.id;
+				const div = document.createElement('div');
+				div.className = `p-3 rounded-xl border flex flex-col gap-3 ${t.completed ? 'bg-slate-100 opacity-60' : 'bg-white shadow-sm'}`;
+				
+				if (isEditing) {
+					div.innerHTML = `
+						<input type="text" id="editName" value="${escapeHTML(t.name)}" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+						<div class="grid grid-cols-2 gap-2">
+							<select id="editHours" class="border border-slate-300 rounded-lg px-2 py-1.5 text-sm bg-white">
+								${createOptions(t.hours, 6, true)}
+							</select>
+							<select id="editMinutes" class="border border-slate-300 rounded-lg px-2 py-1.5 text-sm bg-white">
+								${createOptions(t.minutes, 55, false)}
+							</select>
+						</div>
+						<div class="flex justify-end gap-2 pt-1">
+							<button onclick="cancelEdit()" class="bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-medium">キャンセル</button>
+							<button onclick="saveTask(${t.id})" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded-lg text-xs font-medium">保存</button>
+						</div>
+					`;
+				} else {
+					div.innerHTML = `
+						<div class="flex items-center justify-between">
+							<div class="flex items-center gap-3 overflow-hidden">
+								<input type="checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTask(${t.id})" class="w-5 h-5 text-indigo-600 rounded cursor-pointer shrink-0">
+								<div class="truncate">
+									<p class="text-sm font-medium truncate ${t.completed ? 'line-through text-slate-400' : 'text-slate-700'}">${escapeHTML(t.name)}</p>
+									<div class="flex items-center gap-2 mt-0.5">
+										<span class="text-xs text-slate-500">${t.hours > 0 ? t.hours + '時間' : ''}${t.minutes}分</span>
+										${t.isRoutine ? '<span class="bg-indigo-50 text-indigo-600 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-indigo-100">ルーチン</span>' : ''}
+									</div>
+								</div>
+							</div>
+							<div class="flex items-center gap-1 shrink-0">
+								<button onclick="editTask(${t.id})" class="text-slate-400 hover:text-indigo-600 text-xs px-2 py-1">編集</button>
+								<button onclick="deleteTask(${t.id})" class="text-slate-400 hover:text-rose-600 text-xs px-2 py-1">削除</button>
+							</div>
+						</div>
+					`;
+				}
+				taskListEl.appendChild(div);
+			});
+			calculate();
+		}
+
+		function calculate() {
+			const now = new Date();
+			const [h, m] = workEndTime.split(':');
+			const end = new Date();
+			end.setHours(h, m, 0);
+			const diff = Math.floor((end - now) / 60000);
+			const total = tasks.filter(t => !t.completed).reduce((sum, t) => sum + (Number(t.hours) * 60) + Number(t.minutes), 0);
+
+			const remH = Math.floor(diff/60);
+			const remM = diff%60;
+			const totH = Math.floor(total/60);
+			const totM = total%60;
+
+			document.getElementById('remainingTimeDisplay').textContent = diff > 0 ? `${remH}時間${remM}分` : "定時経過";
+			document.getElementById('totalTaskTimeDisplay').textContent = `${totH}時間${totM}分`;
+
+			const statusCard = document.getElementById('statusCard');
+			const statusMessage = document.getElementById('statusMessage');
+
+			if (diff <= 0) {
+				statusCard.className = "p-4 rounded-xl border bg-rose-50 border-rose-200 text-rose-900 transition-all";
+				statusMessage.innerHTML = "⚠️ すでに定時時間を過ぎています。お疲れ様でした！";
+			} else if (diff >= total) {
+				statusCard.className = "p-4 rounded-xl border bg-emerald-50 border-emerald-200 text-emerald-900 transition-all";
+				statusMessage.innerHTML = "✅ 実行可能です！定時退社を目指しましょう 🎉";
+			} else {
+				statusCard.className = "p-4 rounded-xl border bg-amber-50 border-amber-200 text-amber-900 transition-all";
+				statusMessage.innerHTML = "⚠️ 時間が不足しています。タスクを調整しましょう！";
+			}
+			localStorage.setItem('teiji_tasks', JSON.stringify(tasks));
+		}
+
+		function escapeHTML(str) {
+			return str.replace(/[&'`"<>]/g, match => ({'&': '&amp;', "'": '&#x27;', '`': '&#x60;', '"': '&quot;', '<': '&lt;', '>': '&gt;'}[match]));
+		}
+
+		document.getElementById('taskForm').onsubmit = (e) => {
+			e.preventDefault();
+			tasks.push({ 
+				id: Date.now(), 
+				name: document.getElementById('taskName').value.trim(), 
+				hours: parseInt(document.getElementById('taskHours').value), 
+				minutes: parseInt(document.getElementById('taskMinutes').value),
+				isRoutine: document.getElementById('taskRoutine').checked,
+				completed: false 
+			});
+			updateUI();
+			e.target.reset();
+			document.getElementById('taskMinutes').value = "30";
+		};
+
+		window.toggleTask = (id) => { tasks.find(t => t.id === id).completed = !tasks.find(t => t.id === id).completed; updateUI(); };
+		window.deleteTask = (id) => { tasks = tasks.filter(t => t.id !== id); updateUI(); };
+		window.editTask = (id) => { editingId = id; updateUI(); };
+		window.cancelEdit = () => { editingId = null; updateUI(); };
+		window.saveTask = (id) => {
+			const t = tasks.find(t => t.id === id);
+			t.name = document.getElementById('editName').value.trim();
+			t.hours = parseInt(document.getElementById('editHours').value);
+			t.minutes = parseInt(document.getElementById('editMinutes').value);
+			editingId = null;
+			updateUI();
+		};
+
+		workStartTimeInput.onchange = (e) => { workStartTime = e.target.value; localStorage.setItem('teiji_workStartTime', workStartTime); };
+		workEndTimeInput.onchange = (e) => { workEndTime = e.target.value; localStorage.setItem('teiji_workEndTime', workEndTime); calculate(); };
+		
+		document.getElementById('clearNonRoutineBtn').onclick = () => { 
+			if (confirm("ルーチンタスク以外のすべてのタスクをクリアしますか？")) {
+				tasks = tasks.filter(t => t.isRoutine); 
+				updateUI(); 
+			}
+		};
+
+		updateUI();
+		setInterval(calculate, 60000);
+	</script>
+</body>
+</html>

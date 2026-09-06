@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>ねこスイカDX - Drag & Release</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+
+<style>
+    :root { --safe-top: env(safe-area-inset-top); }
+    body {
+        margin: 0;
+        background: linear-gradient(#fff7e6, #ffe0b2);
+        font-family: sans-serif;
+        overflow: hidden;
+        touch-action: none;
+        -webkit-user-select: none;
+        user-select: none;
+    }
+    .card {
+        position: absolute;
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 12px;
+        padding: 8px 12px;
+        box-shadow: 0 4px 0 #e0a96d;
+        font-weight: bold;
+        z-index: 10;
+        top: calc(10px + var(--safe-top));
+    }
+    #score { left: 10px; }
+    #next { right: 10px; text-align: center; font-size: 12px; }
+    #next img { display: block; margin: 4px auto; height: 40px; }
+    #combo {
+        position: absolute; top: 120px; left: 50%; transform: translateX(-50%);
+        font-size: 32px; color: #ff5722; font-weight: bold; opacity: 0; pointer-events: none;
+    }
+    .overlay {
+        position: absolute; inset: 0; background: rgba(0,0,0,0.6);
+        display: flex; justify-content: center; align-items: center; z-index: 100;
+        backdrop-filter: blur(4px);
+    }
+    .hidden { display: none !important; }
+    .modal { background: white; padding: 30px; border-radius: 24px; text-align: center; width: 80%; max-width: 320px; }
+    button { background: #ff5722; color: white; border: none; padding: 12px 24px; border-radius: 50px; font-weight: bold; margin-top: 15px; }
+    .return-link { margin-top: 15px; text-align: center; }
+    .return-link a { color: #00aa66; text-decoration: none; font-size: 0.9rem; }
+    canvas { display: block; }
+</style>
+</head>
+
+<body>
+
+<div id="score" class="card">SCORE: <span id="scoreVal">0</span></div>
+<div id="next" class="card">NEXT<br><img id="nextImg" src="./nekoWatermelonGame/neko.png"></div>
+<div id="combo"></div>
+
+<div id="start" class="overlay">
+    <div class="modal">
+        <h2>ねこスイカDX</h2>
+        <p>ドラッグで狙って<br>指を離してドロップ！</p>
+        <button onclick="startGame()">ゲーム開始</button>
+        <div class="return-link"><a href="../">&lt;- return</a></div>
+    </div>
+</div>
+
+<div id="gameover" class="overlay hidden">
+    <div class="modal">
+        <h2>GAME OVER</h2>
+        <p id="final"></p>
+        <button onclick="startGame()">リトライ</button>
+        <div class="return-link"><a href="../">&lt;- return</a></div>
+    </div>
+</div>
+
+<canvas id="c"></canvas>
+
+<script>
+const { Engine, Runner, Bodies, Composite, Events } = Matter;
+const nekoImg = new Image();
+nekoImg.src = "./nekoWatermelonGame/neko.png";
+
+const FRUITS = [
+    {r:18, s:1}, {r:26, s:3}, {r:36, s:6},
+    {r:50, s:12}, {r:70, s:24}, {r:95, s:48}, {r:130, s:100}
+];
+
+let engine = Engine.create();
+let runner = Runner.create();
+let canvas = document.getElementById("c"), ctx = canvas.getContext("2d");
+let w, h, boxW, boxL, boxR, groundY, deadY;
+let current = null, nextLv = 0, score = 0, combo = 0;
+let mouseX = 0, playing = false, canDrop = true;
+let gameOverTimer = 0;
+
+function initSize() {
+    w = window.innerWidth; h = window.innerHeight;
+    canvas.width = w; canvas.height = h;
+    boxW = Math.min(w * 0.9, 400);
+    boxL = (w - boxW) / 2; boxR = (w + boxW) / 2;
+    groundY = h - 60; deadY = 150;
+    mouseX = w / 2;
+}
+window.addEventListener("resize", initSize);
+initSize();
+
+function startGame() {
+    Composite.clear(engine.world);
+    score = 0; combo = 0; gameOverTimer = 0;
+    playing = true; canDrop = true;
+    document.getElementById("scoreVal").innerText = 0;
+    document.getElementById("start").classList.add("hidden");
+    document.getElementById("gameover").classList.add("hidden");
+
+    Composite.add(engine.world, [
+        Bodies.rectangle(w/2, groundY + 50, boxW, 100, { isStatic: true }),
+        Bodies.rectangle(boxL - 25, h/2, 50, h, { isStatic: true }),
+        Bodies.rectangle(boxR + 25, h/2, 50, h, { isStatic: true })
+    ]);
+
+    nextLv = Math.floor(Math.random() * 3);
+    spawn();
+    Runner.run(runner, engine);
+}
+
+function spawn() {
+    current = { lv: nextLv, ...FRUITS[nextLv] };
+    nextLv = Math.floor(Math.random() * 3);
+    document.getElementById("nextImg").style.width = (FRUITS[nextLv].r * 0.8) + "px";
+}
+
+/* --- 操作ロジックの変更点 --- */
+
+const updatePos = (x) => {
+    if (!playing || !current) return;
+    // フルーツの中心が箱からはみ出さないように制限
+    mouseX = Math.max(boxL + current.r, Math.min(boxR - current.r, x));
+};
+
+// 1. 動かしている間は位置を更新するだけ
+canvas.addEventListener("pointermove", (e) => {
+    updatePos(e.clientX);
+});
+
+// 2. 押し始めた時もその場所に移動
+canvas.addEventListener("pointerdown", (e) => {
+    updatePos(e.clientX);
+});
+
+// 3. 指を離した瞬間にドロップを実行
+canvas.addEventListener("pointerup", (e) => {
+    updatePos(e.clientX); // 最後に離した位置に合わせる
+    drop();
+});
+
+function drop() {
+    if (!playing || !canDrop || !current) return;
+    
+    const b = Bodies.circle(mouseX, deadY, current.r, {
+        label: "f_" + current.lv,
+        restitution: 0.3,
+        friction: 0.1
+    });
+
+    Composite.add(engine.world, b);
+    current = null;
+    canDrop = false;
+    
+    setTimeout(() => {
+        if (playing) {
+            spawn();
+            canDrop = true;
+        }
+    }, 600);
+}
+
+/* --- 描画・判定系 --- */
+
+Events.on(engine, "collisionStart", e => {
+    e.pairs.forEach(p => {
+        let a = p.bodyA, b = p.bodyB;
+        if (a.label === b.label && a.label.startsWith("f_")) {
+            if (a.isMerging || b.isMerging) return;
+            let lv = parseInt(a.label.split("_")[1]);
+            if (lv < FRUITS.length - 1) {
+                a.isMerging = b.isMerging = true;
+                const newX = (a.position.x + b.position.x) / 2;
+                const newY = (a.position.y + b.position.y) / 2;
+                Composite.remove(engine.world, [a, b]);
+                const nb = Bodies.circle(newX, newY, FRUITS[lv+1].r, { label: "f_" + (lv + 1) });
+                Composite.add(engine.world, nb);
+                score += FRUITS[lv+1].s;
+                document.getElementById("scoreVal").innerText = score;
+                combo++; showCombo();
+            }
+        }
+    });
+});
+
+function showCombo() {
+    const el = document.getElementById("combo");
+    el.innerText = combo + " COMBO!";
+    el.style.opacity = 1;
+    setTimeout(() => { el.style.opacity = 0; }, 500);
+}
+
+/* --- ゲームオーバー判定（強化版） --- */
+function checkGameOver(bodies) {
+    let isOverLimit = false;
+
+    bodies.forEach(o => {
+        if (o.isStatic || o.isMerging) return;
+        
+        // 判定条件：境界線(deadY)より上にあり、かつ激しく動いていない
+        // velocity.y のしきい値を 0.1 -> 0.2 に上げ、少し動いていても判定されるように
+        if (o.position.y < deadY && Math.abs(o.velocity.y) < 0.2) {
+            isOverLimit = true;
+        }
+    });
+
+    if (isOverLimit) {
+        gameOverTimer++;
+        // 120 -> 60フレーム（約1秒）に短縮
+        if (gameOverTimer > 60) {
+            playing = false;
+            document.getElementById("final").innerText = "SCORE: " + score;
+            document.getElementById("gameover").classList.remove("hidden");
+            Runner.stop(runner);
+        }
+    } else {
+        gameOverTimer = 0;
+    }
+}
+
+/* --- 描画ループ内のライン演出を強化 --- */
+function draw() {
+    ctx.clearRect(0, 0, w, h);
+
+    // 箱の描画
+    ctx.fillStyle = "#f4a261";
+    ctx.fillRect(boxL - 10, deadY, 10, groundY - deadY + 20); 
+    ctx.fillRect(boxR, deadY, 10, groundY - deadY + 20); 
+    ctx.fillRect(boxL - 10, groundY + 10, boxW + 20, 20);
+
+    // デッドライン（警告演出付き）
+    ctx.beginPath();
+    ctx.setLineDash([5, 5]);
+    if (gameOverTimer > 0) {
+        // 警告：赤く点滅し、タイマーが進むほど不透明度が上がる
+        ctx.strokeStyle = `rgba(255, 0, 0, ${0.3 + (gameOverTimer / 60) * 0.7})`;
+        ctx.lineWidth = 3;
+        // ラインを少し震わせる
+        const shake = (Math.random() - 0.5) * (gameOverTimer / 10);
+        ctx.moveTo(boxL, deadY + shake);
+        ctx.lineTo(boxR, deadY + shake);
+    } else {
+        ctx.strokeStyle = "rgba(255, 0, 0, 0.2)";
+        ctx.lineWidth = 1;
+        ctx.moveTo(boxL, deadY);
+        ctx.lineTo(boxR, deadY);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.lineWidth = 1;
+
+    // --- 以降、フルーツの描画などは変更なし ---
+    const bodies = Composite.allBodies(engine.world);
+    bodies.forEach(o => {
+        if (o.isStatic) return;
+        const r = o.circleRadius;
+        ctx.save();
+        ctx.translate(o.position.x, o.position.y);
+        ctx.rotate(o.angle);
+        ctx.drawImage(nekoImg, -r, -r, r * 2, r * 2);
+        ctx.restore();
+    });
+
+    if (current && canDrop) {
+        ctx.globalAlpha = 0.6;
+        ctx.drawImage(nekoImg, mouseX - current.r, deadY - current.r, current.r * 2, current.r * 2);
+        ctx.globalAlpha = 1;
+        ctx.beginPath(); ctx.strokeStyle = "rgba(255,255,255,0.3)";
+        ctx.moveTo(mouseX, deadY); ctx.lineTo(mouseX, groundY); ctx.stroke();
+    }
+
+    if (playing) checkGameOver(bodies);
+    requestAnimationFrame(draw);
+}
+draw();
+</script>
+</body>
+</html>

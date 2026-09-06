@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pomodoro Timer</title>
+
+<style>
+:root {
+    /* 背景を深いオレンジブラウンに変更 */
+    --bg: #1a0f0a; 
+    --fg: #ffe0d5; /* テキストは少し赤みのあるクリーム色 */
+    --accent: #ff5522; /* 鮮やかな朱色 */
+    --secondary: #3d2216; /* タイマーの背景（溝の部分） */
+    --border: #4a2a1b; 
+}
+
+body {
+    margin: 0;
+    font-family: "Inter", system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    letter-spacing: -0.02em;
+}
+
+.container {
+    text-align: center;
+    width: 100%;
+    max-width: 420px;
+    padding: 24px;
+    box-sizing: border-box;
+}
+
+.mode {
+    font-size: 0.8rem;
+    margin-bottom: 12px;
+    opacity: 0.6;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent); /* モード表示もアクセントカラーに */
+}
+
+/* タイマー円 */
+.timer {
+    position: relative;
+    width: min(70vw, 240px);
+    height: min(70vw, 240px);
+    margin: 20px auto;
+}
+
+.progress {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: conic-gradient(var(--accent) 0deg, var(--secondary) 0deg);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: background 0.3s ease;
+}
+
+.inner {
+    width: 88%; /* 太めの線を維持 */
+    height: 88%;
+    background: var(--bg); /* 内側を背景色と同じに */
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: clamp(2rem, 8vw, 3rem);
+    font-weight: 300;
+    font-variant-numeric: tabular-nums;
+    color: var(--fg);
+}
+
+/* ボタン */
+.controls {
+    margin-top: 32px;
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+button {
+    padding: 12px 24px;
+    border: 1px solid var(--accent);
+    border-radius: 4px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    background: transparent;
+    color: var(--accent);
+    transition: all 0.2s ease;
+    flex: 1;
+    max-width: 140px;
+}
+
+button:hover {
+    background: var(--accent);
+    color: var(--bg); /* ホバー時は文字を背景色に反転 */
+}
+
+button:active {
+    transform: scale(0.98);
+}
+
+.reset {
+    border-color: var(--secondary);
+    color: #8a5a45; /* 落ち着いたオレンジブラウン */
+}
+
+.reset:hover {
+    background: var(--secondary);
+    color: var(--fg);
+}
+
+/* 設定 */
+.settings {
+    margin-top: 40px;
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    border-top: 1px solid var(--border);
+    padding-top: 20px;
+}
+
+.settings div {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.settings label {
+    font-size: 0.7rem;
+    margin-bottom: 8px;
+    opacity: 0.5;
+    text-transform: uppercase;
+}
+
+input {
+    background: rgba(255, 85, 34, 0.05); /* ほんのりオレンジの背景 */
+    color: var(--fg);
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    text-align: center;
+    font-size: 1rem;
+    width: 100%;
+    box-sizing: border-box;
+    outline: none;
+}
+
+input:focus {
+    border-color: var(--accent);
+    background: rgba(255, 85, 34, 0.1);
+}
+
+/* リンク */
+.footer-link {
+    margin-top: 40px;
+}
+
+.footer-link a {
+    color: #5a3a2b;
+    text-decoration: none;
+    font-size: 0.7rem;
+    transition: color 0.2s;
+}
+
+.footer-link a:hover {
+    color: var(--accent);
+}
+
+@media(max-width:480px){
+    .container { padding: 20px; }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+    <div class="mode" id="modeLabel"></div>
+
+    <div class="timer">
+        <div class="progress" id="progress">
+            <div class="inner" id="timeDisplay">25:00</div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="start" id="startBtn">START</button>
+        <button class="reset" id="resetBtn">RESET</button>
+    </div>
+
+    <div class="settings">
+        <div>
+            <label>作業中</label>
+            <input type="number" id="workInput" value="25">
+        </div>
+        <div>
+            <label>休憩中</label>
+            <input type="number" id="breakInput" value="5">
+        </div>
+    </div>
+
+    <div class="footer-link">
+        <a href="../">← RETURN</a>
+    </div>
+</div>
+
+<script>
+let isRunning = false;
+let isWorkMode = true;
+let timer = null;
+let audioCtx = null;
+let totalSeconds = 25 * 60;
+let remainingSeconds = totalSeconds;
+
+const timeDisplay = document.getElementById("timeDisplay");
+const progress = document.getElementById("progress");
+const startBtn = document.getElementById("startBtn");
+const resetBtn = document.getElementById("resetBtn");
+const modeLabel = document.getElementById("modeLabel");
+
+function formatTime(sec){
+    const m = Math.floor(sec/60);
+    const s = sec%60;
+    return `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+}
+
+function updateProgress(){
+    const percent = (remainingSeconds / totalSeconds);
+    const deg = percent * 360;
+    // 作業中は鮮やかな朱色、休憩中は少し柔らかいオレンジ
+    const color = isWorkMode ? "#ff5522" : "#ff9544";
+    progress.style.background = `conic-gradient(${color} ${deg}deg, var(--secondary) ${deg}deg)`;
+}
+
+function updateDisplay(){
+    timeDisplay.textContent = formatTime(remainingSeconds);
+    document.title = `${formatTime(remainingSeconds)} | Focus`;
+    updateProgress();
+}
+
+function playAlarm(){
+    if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    audioCtx.resume();
+    for(let i=0;i<2;i++){
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.frequency.value = 392; // G4の音（少し温かみのある低めの音）
+        osc.type = "sine";
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        osc.start(audioCtx.currentTime + i*0.5);
+        osc.stop(audioCtx.currentTime + i*0.5 + 0.2);
+    }
+}
+
+function switchMode(){
+    isWorkMode = !isWorkMode;
+    const workMin = document.getElementById("workInput").value;
+    const breakMin = document.getElementById("breakInput").value;
+    totalSeconds = (isWorkMode ? workMin : breakMin) * 60;
+    remainingSeconds = totalSeconds;
+    modeLabel.textContent = isWorkMode ? "作業中" : "休憩中";
+    updateDisplay();
+}
+
+function tick(){
+    remainingSeconds--;
+    if(remainingSeconds <= 0){
+        playAlarm();
+        switchMode();
+    }
+    updateDisplay();
+}
+
+startBtn.onclick = ()=>{
+    if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if(!isRunning){
+        timer = setInterval(tick,1000);
+        startBtn.textContent = "PAUSE";
+        modeLabel.textContent = "作業中";
+        isRunning = true;
+    }else{
+        clearInterval(timer);
+        startBtn.textContent = "START";
+        modeLabel.textContent = "一時停止";
+        isRunning = false;
+    }
+};
+
+resetBtn.onclick = ()=>{
+    clearInterval(timer);
+    isRunning = false;
+    startBtn.textContent = "START";
+    const workMin = document.getElementById("workInput").value;
+    totalSeconds = workMin * 60;
+    remainingSeconds = totalSeconds;
+    isWorkMode = true;
+    modeLabel.textContent = "";
+    updateDisplay();
+};
+
+updateDisplay();
+</script>
+
+</body>
+</html>

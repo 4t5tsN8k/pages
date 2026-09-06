@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ショートカットキー爆速習得ゲーム</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --bg2: #121a31;
+      --panel: rgba(18, 26, 49, 0.9);
+      --panel-2: rgba(255, 255, 255, 0.05);
+      --text: #eef3ff;
+      --muted: #98a6c7;
+      --accent: #6ea8ff;
+      --accent-2: #87f7d1;
+      --danger: #ff6b81;
+      --success: #2dde98;
+      --warning: #ffd166;
+      --border: rgba(255, 255, 255, 0.08);
+      --shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+      --radius: 22px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background:
+        radial-gradient(circle at top left, rgba(110, 168, 255, 0.18), transparent 30%),
+        radial-gradient(circle at top right, rgba(45, 222, 152, 0.12), transparent 28%),
+        linear-gradient(135deg, #060913 0%, #0d1326 45%, #111b34 100%);
+      color: var(--text);
+      font-family: "Inter", "Hiragino Sans", "Yu Gothic UI", "Meiryo", sans-serif;
+      user-select: none;
+      overflow-x: hidden;
+    }
+
+    body {
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    .app {
+      width: min(980px, 100%);
+      position: relative;
+    }
+
+    .screen {
+      display: none;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+      padding: 28px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .screen.active {
+      display: block;
+      animation: fadeUp 0.35s ease;
+    }
+
+    .screen::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(255,255,255,0.05), transparent 28%);
+      pointer-events: none;
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(14px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    h1, h2, h3, p {
+      margin-top: 0;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.88rem;
+      color: var(--accent-2);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      background: rgba(135, 247, 209, 0.08);
+      border: 1px solid rgba(135, 247, 209, 0.18);
+      border-radius: 999px;
+      padding: 8px 12px;
+      margin-bottom: 16px;
+    }
+
+    .title {
+      font-size: clamp(2rem, 4vw, 3.2rem);
+      line-height: 1.08;
+      margin-bottom: 12px;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      line-height: 1.8;
+      margin-bottom: 26px;
+    }
+
+    .settings-grid,
+    .result-grid,
+    .hud-grid {
+      display: grid;
+      gap: 18px;
+    }
+
+    .settings-grid {
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      margin-bottom: 24px;
+    }
+
+    .panel {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 18px;
+    }
+
+    .panel h3 {
+      margin-bottom: 12px;
+      font-size: 1rem;
+    }
+
+    .options {
+      display: grid;
+      gap: 10px;
+    }
+
+    .option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03);
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    .option:hover {
+      border-color: rgba(110, 168, 255, 0.45);
+      transform: translateY(-1px);
+    }
+
+    .option input {
+      accent-color: var(--accent);
+      transform: scale(1.15);
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    button {
+      appearance: none;
+      border: none;
+      border-radius: 999px;
+      padding: 14px 20px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.14s ease, box-shadow 0.14s ease, opacity 0.14s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    .primary-btn {
+      color: #08111f;
+      background: linear-gradient(135deg, var(--accent-2), #81b8ff);
+      box-shadow: 0 10px 28px rgba(110, 168, 255, 0.22);
+    }
+
+    .secondary-btn {
+      color: var(--text);
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .danger-btn {
+      color: white;
+      background: linear-gradient(135deg, #ff7b91, #ff5d72);
+      box-shadow: 0 10px 24px rgba(255, 107, 129, 0.2);
+    }
+
+    .note {
+      margin-top: 18px;
+      color: var(--muted);
+      line-height: 1.8;
+      font-size: 0.95rem;
+    }
+
+    .hud-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      margin-bottom: 20px;
+    }
+
+    .stat {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 16px;
+    }
+
+    .stat-label {
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin-bottom: 6px;
+    }
+
+    .stat-value {
+      font-size: clamp(1.05rem, 2vw, 1.4rem);
+      font-weight: 800;
+      letter-spacing: 0.02em;
+    }
+
+    .play-main {
+      display: grid;
+      gap: 20px;
+      grid-template-columns: 1.2fr 0.8fr;
+    }
+
+    .mission-box {
+      min-height: 270px;
+      display: grid;
+      gap: 16px;
+      align-content: start;
+    }
+
+    .category-chip {
+      display: inline-flex;
+      align-items: center;
+      width: fit-content;
+      padding: 8px 12px;
+      border-radius: 999px;
+      color: #d4e2ff;
+      background: rgba(110, 168, 255, 0.12);
+      border: 1px solid rgba(110, 168, 255, 0.22);
+      font-size: 0.92rem;
+      font-weight: 700;
+    }
+
+    .mission-label {
+      color: var(--muted);
+      font-size: 0.92rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .mission-text {
+      font-size: clamp(1.9rem, 4vw, 3.1rem);
+      line-height: 1.18;
+      font-weight: 900;
+      margin: 0;
+      text-wrap: balance;
+      transition: color 0.2s ease;
+    }
+
+    .mission-text.answer-mode {
+      color: var(--warning);
+      font-size: clamp(1.6rem, 3.5vw, 2.6rem);
+    }
+
+    .help-text {
+      color: var(--muted);
+      line-height: 1.8;
+      margin: 0;
+    }
+
+    .key-visual-box {
+      display: grid;
+      gap: 16px;
+      align-content: start;
+    }
+
+    /* 【変更】1行に綺麗に収まり、はみ出さないように調整 */
+    .key-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: nowrap;
+      gap: 6px;
+      min-height: 62px;
+    }
+
+    /* 【変更】通常時は完全に透明（枠線のみ）にするスタイル */
+    .keycap {
+      flex: 1;
+      min-width: 60px;
+      padding: 14px 8px;
+      text-align: center;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.15); 
+      background: transparent;  /* 背景を透明に */
+      color: rgba(255, 255, 255, 0.3); /* 通常時の文字を少し薄く */
+      font-weight: 800;
+      font-size: 0.95rem;
+      letter-spacing: 0.02em;
+      transition: all 0.1s ease;
+      box-shadow: none;
+    }
+
+    .keycap.plus {
+      flex: none;
+      min-width: auto;
+      padding-inline: 2px;
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* 【変更】キーが実際に押されたとき（発光カラー） */
+    .keycap.active {
+      transform: translateY(-2px);
+      border-color: rgba(135, 247, 209, 0.6);
+      box-shadow: 0 0 20px rgba(45, 222, 152, 0.3);
+      background: linear-gradient(180deg, rgba(45, 222, 152, 0.25), rgba(45, 222, 152, 0.05));
+      color: #ffffff;
+    }
+
+    .status-line {
+      color: var(--muted);
+      min-height: 1.6em;
+      line-height: 1.7;
+    }
+
+    .small-kbd {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.92em;
+    }
+
+    .result-grid {
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      margin: 22px 0 18px;
+    }
+
+    .result-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 22px;
+    }
+
+    .result-card .label {
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .result-card .value {
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+      font-weight: 900;
+    }
+
+    .result-genre-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 16px;
+      background: rgba(110, 168, 255, 0.15);
+      border: 1px solid rgba(110, 168, 255, 0.3);
+      color: #b0d2ff;
+      border-radius: 99px;
+      font-weight: bold;
+      font-size: 0.95rem;
+      margin-bottom: 20px;
+    }
+
+    .breakdown-panel {
+      margin-bottom: 28px;
+    }
+
+    .breakdown-panel h3 {
+      border-left: 3px solid var(--accent-2);
+      padding-left: 10px;
+      font-size: 1.1rem;
+      margin-bottom: 14px;
+    }
+
+    .breakdown-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .breakdown-table th, 
+    .breakdown-table td {
+      padding: 12px 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .breakdown-table th {
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 0.88rem;
+    }
+
+    .breakdown-table td {
+      font-size: 1rem;
+    }
+
+    .breakdown-table .miss-count {
+      font-weight: 800;
+    }
+
+    .breakdown-table .miss-count.has-miss {
+      color: var(--danger);
+    }
+
+    .breakdown-table .miss-count.no-miss {
+      color: var(--success);
+    }
+
+    .flash-success {
+      animation: successFlash 0.42s ease;
+    }
+
+    @keyframes successFlash {
+      0% {
+        box-shadow: 0 0 0 rgba(45, 222, 152, 0), var(--shadow);
+        background-color: rgba(45, 222, 152, 0.02);
+      }
+      35% {
+        box-shadow: 0 0 0 2px rgba(45, 222, 152, 0.5), 0 0 48px rgba(45, 222, 152, 0.28), var(--shadow);
+        background-color: rgba(45, 222, 152, 0.12);
+      }
+      100% {
+        box-shadow: var(--shadow);
+        background-color: transparent;
+      }
+    }
+
+    .shake-error {
+      animation: errorShake 0.38s ease;
+    }
+
+    @keyframes errorShake {
+      0%, 100% { transform: translateX(0); }
+      15% { transform: translateX(-10px); }
+      30% { transform: translateX(10px); }
+      45% { transform: translateX(-8px); }
+      60% { transform: translateX(8px); }
+      75% { transform: translateX(-4px); }
+      90% { transform: translateX(4px); }
+    }
+
+    .glow-border {
+      position: absolute;
+      inset: -1px;
+      border-radius: inherit;
+      pointer-events: none;
+      border: 1px solid rgba(255,255,255,0.08);
+      mask: linear-gradient(white 0 0) content-box, linear-gradient(white 0 0);
+    }
+
+    @media (max-width: 860px) {
+      .hud-grid,
+      .play-main {
+        grid-template-columns: 1fr;
+      }
+
+      .mission-box {
+        min-height: auto;
+      }
+    }
+
+    @media (max-width: 520px) {
+      body {
+        padding: 14px;
+      }
+
+      .screen {
+        padding: 20px;
+      }
+
+      .title {
+        font-size: 1.9rem;
+      }
+
+      .mission-text {
+        font-size: 1.75rem;
+      }
+
+      .keycap {
+        min-width: 50px;
+        padding: 12px 4px;
+        font-size: 0.85rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <section id="startScreen" class="screen active">
+      <div class="eyebrow">⌨ Shortcut Speed Trainer</div>
+      <h1 class="title">ショートカットキー爆速習得ゲーム</h1>
+      <p class="subtitle">
+        表示されたお題に対応するショートカットキーを、実際にキーボードで入力して覚えるトレーニングゲームです。<br>
+        プレイ中はブラウザ標準ショートカットを極力無効化し、誤操作でゲームが中断しにくい設計にしています。
+      </p>
+
+      <div class="settings-grid">
+        <div class="panel">
+          <h3>ジャンル選択</h3>
+          <div class="options">
+            <label class="option"><input type="radio" name="genre" value="all" checked> 全ジャンル（30問）</label>
+            <label class="option"><input type="radio" name="genre" value="windows"> Windows基礎編（10問）</label>
+            <label class="option"><input type="radio" name="genre" value="excel"> Excel編（10問）</label>
+            <label class="option"><input type="radio" name="genre" value="word"> Word編（10問）</label>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>出題順選択</h3>
+          <div class="options">
+            <label class="option"><input type="radio" name="order" value="ordered" checked> 順番通りに出題</label>
+            <label class="option"><input type="radio" name="order" value="random"> ランダムに出題</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button id="startBtn" class="primary-btn">ゲームスタート</button>
+      </div>
+
+      <p class="note">
+        ヒント：入力状態はリアルタイムで <span class="small-kbd">Ctrl</span> / <span class="small-kbd">Shift</span> / <span class="small-kbd">キー</span> として可視化されます。<br>
+        ※ OSやブラウザの仕様上、Winキーや一部のシステム予約ショートカットは完全には抑止できない場合がありますが、ゲーム中は <code>preventDefault()</code> を徹底して中断を最小化しています。
+      </p>
+    </section>
+
+    <section id="playScreen" class="screen">
+      <div class="hud-grid">
+        <div class="stat">
+          <div class="stat-label">進行度</div>
+          <div id="progressText" class="stat-value">1問目 / 10問中</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">ミス回数</div>
+          <div id="missText" class="stat-value">0</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">経過時間</div>
+          <div id="timerText" class="stat-value">0.0 秒</div>
+        </div>
+      </div>
+
+      <div class="play-main">
+        <div id="answerArea" class="panel mission-box">
+          <span id="categoryChip" class="category-chip">Windows基礎編</span>
+          <div class="mission-label">お題</div>
+          <p id="questionText" class="mission-text">コピーする</p>
+          <p class="help-text">
+            実際にキーボードを押してください。<br>
+            正解例は表示せず、お題からショートカットを思い出して入力する形式です。
+          </p>
+          <div class="actions">
+            <button id="passBtn" class="danger-btn">パスする</button>
+          </div>
+        </div>
+
+        <div class="panel key-visual-box">
+          <h3>現在の入力状態</h3>
+          <div class="key-row">
+            <div id="ctrlKeycap" class="keycap">Ctrl</div>
+            <div class="keycap plus">+</div>
+            <div id="shiftKeycap" class="keycap">Shift</div>
+            <div class="keycap plus">+</div>
+            <div id="mainKeycap" class="keycap">?</div>
+          </div>
+          <div id="statusText" class="status-line">待機中… お題に合うショートカットを入力してください。</div>
+          <p class="help-text">
+            例：<span class="small-kbd">Ctrl</span> を押したまま <span class="small-kbd">C</span> を押すと <span class="small-kbd">Ctrl + C</span> と判定されます。<br>
+            <span class="small-kbd">Ctrl + Shift + C</span> のような複合入力にも対応しています。
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section id="resultScreen" class="screen">
+      <div class="eyebrow">🎉 Result</div>
+      <h2 class="title" style="font-size: clamp(1.8rem, 3vw, 2.7rem);">トレーニング完了！</h2>
+      
+      <div id="resultGenreBadge" class="result-genre-badge">挑戦ジャンル：全ジャンル</div>
+      
+      <p class="subtitle">全ての問題を解き終えました。結果の分析は以下の通りです。</p>
+
+      <div class="result-grid">
+        <div class="result-card">
+          <div class="label">クリアタイム</div>
+          <div id="finalTime" class="value">0.0 秒</div>
+        </div>
+        <div class="result-card">
+          <div class="label">トータルミス</div>
+          <div id="finalMiss" class="value">0</div>
+        </div>
+        <div class="result-card">
+          <div class="label">プレイ問題数</div>
+          <div id="finalCount" class="value">10 問</div>
+        </div>
+      </div>
+
+      <div class="panel breakdown-panel">
+        <h3>ジャンル別ミス内訳</h3>
+        <table class="breakdown-table">
+          <thead>
+            <tr>
+              <th>ジャンル</th>
+              <th>ミス回数</th>
+            </tr>
+          </thead>
+          <tbody id="breakdownRows">
+            </tbody>
+        </table>
+      </div>
+
+      <div class="actions">
+        <button id="retryBtn" class="primary-btn">もう一度遊ぶ</button>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // =========================================================
+    // 出題データ（全30問）
+    // =========================================================
+    const QUESTIONS = [
+      // Windows基礎編（10問）
+      { id: 1, genre: 'windows', genreLabel: 'Windows基礎編', prompt: 'コピー', ctrl: true, shift: false, key: 'c', display: 'Ctrl + C' },
+      { id: 2, genre: 'windows', genreLabel: 'Windows基礎編', prompt: '貼り付け', ctrl: true, shift: false, key: 'v', display: 'Ctrl + V' },
+      { id: 3, genre: 'windows', genreLabel: 'Windows基礎編', prompt: '切り取り', ctrl: true, shift: false, key: 'x', display: 'Ctrl + X' },
+      { id: 4, genre: 'windows', genreLabel: 'Windows基礎編', prompt: '元に戻す', ctrl: true, shift: false, key: 'z', display: 'Ctrl + Z' },
+      { id: 5, genre: 'windows', genreLabel: 'Windows基礎編', prompt: '全て選択', ctrl: true, shift: false, key: 'a', display: 'Ctrl + A' },
+      { id: 6, genre: 'windows', genreLabel: 'Windows基礎編', prompt: '検索', ctrl: true, shift: false, key: 'f', display: 'Ctrl + F' },
+      { id: 7, genre: 'windows', genreLabel: 'Windows基礎編', prompt: 'ファイルを保存する', ctrl: true, shift: false, key: 's', display: 'Ctrl + S' },
+      { id: 8, genre: 'windows', genreLabel: 'Windows基礎編', prompt: 'ファイルを削除', ctrl: true, shift: false, key: 'd', display: 'Ctrl + D' },
+      { id: 9, genre: 'windows', genreLabel: 'Windows基礎編', prompt: 'ドキュメントを印刷する', ctrl: true, shift: false, key: 'p', display: 'Ctrl + P' },
+      { id: 10, genre: 'windows', genreLabel: 'Windows基礎編', prompt: '現在のウィンドウやタブを閉じる', ctrl: true, shift: false, key: 'w', display: 'Ctrl + W' },
+
+      // Excel編（10問）
+      { id: 11, genre: 'excel', genreLabel: 'Excel編', prompt: '上書き保存', ctrl: true, shift: false, key: 's', display: 'Ctrl + S' },
+      { id: 12, genre: 'excel', genreLabel: 'Excel編', prompt: '印刷', ctrl: true, shift: false, key: 'p', display: 'Ctrl + P' },
+      { id: 13, genre: 'excel', genreLabel: 'Excel編', prompt: '太字にする', ctrl: true, shift: false, key: 'b', display: 'Ctrl + B' },
+      { id: 14, genre: 'excel', genreLabel: 'Excel編', prompt: '表をテーブル化する', ctrl: true, shift: false, key: 't', display: 'Ctrl + T' },
+      { id: 15, genre: 'excel', genreLabel: 'Excel編', prompt: 'セルの書式設定を開く', ctrl: true, shift: false, key: '1', display: 'Ctrl + 1' },
+      { id: 16, genre: 'excel', genreLabel: 'Excel編', prompt: '行を非表示にする', ctrl: true, shift: false, key: '9', display: 'Ctrl + 9' },
+      { id: 17, genre: 'excel', genreLabel: 'Excel編', prompt: '列全体を選択する', ctrl: true, shift: false, key: 'space', display: 'Ctrl + Space' },
+      { id: 18, genre: 'excel', genreLabel: 'Excel編', prompt: '一つ前の操作を繰り返す', ctrl: true, shift: false, key: 'y', display: 'Ctrl + Y' },
+      { id: 19, genre: 'excel', genreLabel: 'Excel編', prompt: 'セルの挿入', ctrl: true, shift: true, key: '=', display: 'Ctrl + Shift + =' },
+      { id: 20, genre: 'excel', genreLabel: 'Excel編', prompt: 'フラッシュフィルを実行する', ctrl: true, shift: false, key: 'e', display: 'Ctrl + E' },
+
+      // Word編（10問）
+      { id: 21, genre: 'word', genreLabel: 'Word編', prompt: '文字を中央揃えにする', ctrl: true, shift: false, key: 'e', display: 'Ctrl + E' },
+      { id: 22, genre: 'word', genreLabel: 'Word編', prompt: '文字を左揃えにする', ctrl: true, shift: false, key: 'l', display: 'Ctrl + L' },
+      { id: 23, genre: 'word', genreLabel: 'Word編', prompt: '文字を右揃えにする', ctrl: true, shift: false, key: 'r', display: 'Ctrl + R' },
+      { id: 24, genre: 'word', genreLabel: 'Word編', prompt: '置換ダイアログを開く', ctrl: true, shift: false, key: 'h', display: 'Ctrl + H' },
+      { id: 25, genre: 'word', genreLabel: 'Word編', prompt: '下線を引く（アンダーライン）', ctrl: true, shift: false, key: 'u', display: 'Ctrl + U' },
+      { id: 26, genre: 'word', genreLabel: 'Word編', prompt: '斜体にする（イタリック）', ctrl: true, shift: false, key: 'i', display: 'Ctrl + I' },
+      { id: 27, genre: 'word', genreLabel: 'Word編', prompt: '改ページを挿入する', ctrl: true, shift: false, key: 'enter', display: 'Ctrl + Enter' },
+      { id: 28, genre: 'word', genreLabel: 'Word編', prompt: '書式のみをコピーする', ctrl: true, shift: true, key: 'c', display: 'Ctrl + Shift + C' },
+      { id: 29, genre: 'word', genreLabel: 'Word編', prompt: '書式のみを貼り付ける', ctrl: true, shift: true, key: 'v', display: 'Ctrl + Shift + V' },
+      { id: 30, genre: 'word', genreLabel: 'Word編', prompt: 'フォントサイズを大きくする', ctrl: true, shift: true, key: '>', display: 'Ctrl + Shift + >' }
+    ];
+
+    // =========================================================
+    // 画面要素参照
+    // =========================================================
+    const startScreen = document.getElementById('startScreen');
+    const playScreen = document.getElementById('playScreen');
+    const resultScreen = document.getElementById('resultScreen');
+
+    const startBtn = document.getElementById('startBtn');
+    const passBtn = document.getElementById('passBtn');
+    const retryBtn = document.getElementById('retryBtn');
+
+    const progressText = document.getElementById('progressText');
+    const missText = document.getElementById('missText');
+    const timerText = document.getElementById('timerText');
+    const categoryChip = document.getElementById('categoryChip');
+    const questionText = document.getElementById('questionText');
+    const answerArea = document.getElementById('answerArea');
+    const statusText = document.getElementById('statusText');
+
+    const ctrlKeycap = document.getElementById('ctrlKeycap');
+    const shiftKeycap = document.getElementById('shiftKeycap');
+    const mainKeycap = document.getElementById('mainKeycap');
+
+    const finalTime = document.getElementById('finalTime');
+    const finalMiss = document.getElementById('finalMiss');
+    const finalCount = document.getElementById('finalCount');
+    
+    const resultGenreBadge = document.getElementById('resultGenreBadge');
+    const breakdownRows = document.getElementById('breakdownRows');
+
+    // =========================================================
+    // ゲーム状態管理
+    // =========================================================
+    const state = {
+      mode: 'idle', 
+      selectedQuestions: [],
+      currentIndex: 0,
+      misses: 0,
+      startTime: 0,
+      endTime: 0,
+      timerId: null,
+      currentPressedMainKey: '?',
+      
+      genreMisses: {
+        'windows': 0,
+        'excel': 0,
+        'word': 0
+      }
+    };
+
+    // =========================================================
+    // 画面切り替え
+    // =========================================================
+    function showScreen(screenEl) {
+      [startScreen, playScreen, resultScreen].forEach(el => el.classList.remove('active'));
+      screenEl.classList.add('active');
+    }
+
+    // =========================================================
+    // 出題データをモードに応じて取得
+    // =========================================================
+    function buildQuestionSet() {
+      const genre = document.querySelector('input[name="genre"]:checked').value;
+      const order = document.querySelector('input[name="order"]:checked').value;
+
+      let list = [...QUESTIONS];
+
+      if (genre !== 'all') {
+        list = list.filter(q => q.genre === genre);
+      }
+
+      if (order === 'random') {
+        shuffle(list);
+      }
+
+      return list;
+    }
+
+    function shuffle(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+    }
+
+    // =========================================================
+    // キー名の正規化
+    // =========================================================
+    function normalizeKey(key) {
+      if (!key) return '';
+
+      const raw = key.toLowerCase();
+
+      if (raw === ' ') return 'space';
+      if (raw === 'spacebar') return 'space';
+      if (raw === 'control') return 'ctrl';
+      if (raw === 'shift') return 'shift';
+      if (raw === 'escape') return 'esc';
+      if (raw === 'return') return 'enter';
+
+      if (raw === '.') return '.';
+      if (raw === 'period') return '.';
+
+      return raw;
+    }
+
+    function displayMainKey(key) {
+      const map = {
+        'space': 'Space',
+        'enter': 'Enter',
+        '.': '.',
+        '>': '>'
+      };
+      return map[key] || key.toUpperCase();
+    }
+
+    // =========================================================
+    // 現在問題を取得
+    // =========================================================
+    function getCurrentQuestion() {
+      return state.selectedQuestions[state.currentIndex];
+    }
+
+    // =========================================================
+    // プレイ開始
+    // =========================================================
+    function startGame() {
+      state.selectedQuestions = buildQuestionSet();
+      state.currentIndex = 0;
+      state.misses = 0;
+      state.startTime = performance.now();
+      state.endTime = 0;
+      state.mode = 'playing';
+      state.currentPressedMainKey = '?';
+      
+      state.genreMisses.windows = 0;
+      state.genreMisses.excel = 0;
+      state.genreMisses.word = 0;
+
+      const docElm = document.documentElement;
+      if (docElm.requestFullscreen) {
+        docElm.requestFullscreen().catch(err => {
+          console.log("フルスクリーンエラー: ", err);
+        });
+      }
+
+      startTimer();
+      updateHUD();
+      renderQuestion();
+      resetInputVisual();
+      showScreen(playScreen);
+
+      history.pushState({ playing: true }, '');
+    }
+
+    // =========================================================
+    // タイマー処理
+    // =========================================================
+    function startTimer() {
+      stopTimer();
+      state.timerId = setInterval(() => {
+        if (state.mode !== 'playing') return;
+        const elapsed = (performance.now() - state.startTime) / 1000;
+        timerText.textContent = `${elapsed.toFixed(1)} 秒`;
+      }, 100);
+    }
+
+    function stopTimer() {
+      if (state.timerId) {
+        clearInterval(state.timerId);
+        state.timerId = null;
+      }
+    }
+
+    // =========================================================
+    // HUD更新
+    // =========================================================
+    function updateHUD() {
+      progressText.textContent = `${state.currentIndex + 1}問目 / ${state.selectedQuestions.length}問中`;
+      missText.textContent = `${state.misses}`;
+    }
+
+    // =========================================================
+    // 問題描画
+    // =========================================================
+    function renderQuestion() {
+      const q = getCurrentQuestion();
+      if (!q) return;
+      
+      questionText.classList.remove('answer-mode'); 
+      categoryChip.textContent = q.genreLabel;
+      questionText.textContent = q.prompt;
+      statusText.textContent = '待機中… お題に合うショートカットを入力してください。';
+      
+      passBtn.disabled = false; 
+      updateHUD();
+    }
+
+    // =========================================================
+    // 入力状態の可視化
+    // =========================================================
+    function setInputVisual({ ctrl = false, shift = false, main = '?' }) {
+      ctrlKeycap.classList.toggle('active', ctrl);
+      shiftKeycap.classList.toggle('active', shift);
+      mainKeycap.classList.toggle('active', main !== '?');
+      mainKeycap.textContent = main;
+    }
+
+    function resetInputVisual() {
+      setInputVisual({ ctrl: false, shift: false, main: '?' });
+      state.currentPressedMainKey = '?';
+    }
+
+    // =========================================================
+    // 正解/不正解アニメーション適用
+    // =========================================================
+    function triggerSuccessAnimation() {
+      answerArea.classList.remove('shake-error');
+      playScreen.classList.remove('flash-success');
+      void playScreen.offsetWidth; 
+      playScreen.classList.add('flash-success');
+    }
+
+    function triggerErrorAnimation() {
+      answerArea.classList.remove('shake-error');
+      void answerArea.offsetWidth; 
+      answerArea.classList.add('shake-error');
+    }
+
+    // =========================================================
+    // 次の問題へ進む
+    // =========================================================
+    function goNextQuestion() {
+      state.currentIndex += 1;
+
+      if (state.currentIndex >= state.selectedQuestions.length) {
+        finishGame();
+        return;
+      }
+
+      state.mode = 'playing'; 
+      renderQuestion();
+      resetInputVisual();
+    }
+
+    // =========================================================
+    // リザルト処理
+    // =========================================================
+    function finishGame() {
+      state.mode = 'result';
+      state.endTime = performance.now();
+      stopTimer();
+
+      const clearSeconds = ((state.endTime - state.startTime) / 1000).toFixed(1);
+      finalTime.textContent = `${clearSeconds} 秒`;
+      finalMiss.textContent = `${state.misses}`;
+      finalCount.textContent = `${state.selectedQuestions.length} 問`;
+      timerText.textContent = `${clearSeconds} 秒`;
+
+      const selectedGenreRadio = document.querySelector('input[name="genre"]:checked');
+      const genreLabelMap = {
+        'all': '全ジャンル（30問）',
+        'windows': 'Windows基礎編（10問）',
+        'excel': 'Excel編（10問）',
+        'word': 'Word編（10問）'
+      };
+      resultGenreBadge.textContent = `挑戦ジャンル： ${genreLabelMap[selectedGenreRadio.value]}`;
+
+      breakdownRows.innerHTML = '';
+      
+      const genresToDisplay = [
+        { key: 'windows', label: 'Windows基礎編' },
+        { key: 'excel', label: 'Excel編' },
+        { key: 'word', label: 'Word編' }
+      ];
+
+      genresToDisplay.forEach(g => {
+        if (selectedGenreRadio.value !== 'all' && selectedGenreRadio.value !== g.key) {
+          return; 
+        }
+
+        const count = state.genreMisses[g.key];
+        const tr = document.createElement('tr');
+        
+        const tdLabel = document.createElement('td');
+        tdLabel.textContent = g.label;
+        tdLabel.style.fontWeight = '700';
+
+        const tdCount = document.createElement('td');
+        tdCount.className = `miss-count ${count > 0 ? 'has-miss' : 'no-miss'}`;
+        tdCount.textContent = count > 0 ? `${count} 問` : '0 問 (ノーミス！)';
+
+        tr.appendChild(tdLabel);
+        tr.appendChild(tdCount);
+        breakdownRows.appendChild(tr);
+      });
+
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(err => {
+          console.log("フルスクリーン解除エラー: ", err);
+        });
+      }
+
+      showScreen(resultScreen);
+      resetInputVisual();
+    }
+
+    document.addEventListener('fullscreenchange', () => {
+      if (!document.fullscreenElement && state.mode === 'playing') {
+        finishGame();
+      }
+    });
+
+    // =========================================================
+    // 判定ロジック
+    // =========================================================
+    function judgeInput(event) {
+      const q = getCurrentQuestion();
+      if (!q) return;
+
+      const normalized = normalizeKey(event.key);
+
+      if (normalized === 'ctrl' || normalized === 'shift') {
+        statusText.textContent = '修飾キーを確認中… そのままメインキーを押してください。';
+        return;
+      }
+
+      const actualCtrl = event.ctrlKey;
+      const actualShift = event.shiftKey;
+
+      let actualMain = normalized;
+      if (q.key === '>' && event.shiftKey && (normalized === '>' || normalized === '.')) {
+        actualMain = '>';
+      }
+
+      const isCorrect = (
+        actualCtrl === q.ctrl &&
+        actualShift === q.shift &&
+        actualMain === q.key
+      );
+
+      if (isCorrect) {
+        state.mode = 'lock'; 
+        statusText.innerHTML = `正解！ <span class="small-kbd">${q.display}</span>`;
+        triggerSuccessAnimation();
+        setTimeout(goNextQuestion, 180);
+      } else {
+        state.misses += 1;
+        state.genreMisses[q.genre] += 1; 
+        updateHUD();
+        statusText.innerHTML = `ミス！ 入力: <span class="small-kbd">${buildInputString(actualCtrl, actualShift, actualMain)}</span>`;
+        triggerErrorAnimation();
+      }
+    }
+
+    function buildInputString(ctrl, shift, main) {
+      const parts = [];
+      if (ctrl) parts.push('Ctrl');
+      if (shift) parts.push('Shift');
+      if (main && main !== '?') parts.push(displayMainKey(main));
+      return parts.length ? parts.join(' + ') : '?';
+    }
+
+    // =========================================================
+    // イベント禁止処理
+    // =========================================================
+    window.addEventListener('keydown', (e) => {
+      if (state.mode !== 'playing') return; 
+
+      const shouldBlock = (
+        e.ctrlKey || e.shiftKey || e.altKey || e.metaKey ||
+        ['Meta', 'OS', 'F5', 'Tab', 'Escape'].includes(e.key)
+      );
+
+      if (shouldBlock) {
+        e.preventDefault();
+      }
+
+      const normalized = normalizeKey(e.key);
+      let mainKey = '?';
+
+      if (normalized !== 'ctrl' && normalized !== 'shift') {
+        if (normalized === '.' && e.shiftKey) {
+          mainKey = '>';
+        } else {
+          mainKey = displayMainKey(normalized);
+        }
+      }
+
+      setInputVisual({
+        ctrl: e.ctrlKey,
+        shift: e.shiftKey,
+        main: mainKey
+      });
+
+      if (e.ctrlKey && normalized !== 'ctrl' && normalized !== 'shift') {
+        judgeInput(e);
+      }
+    }, { capture: true });
+
+    window.addEventListener('keyup', (e) => {
+      if (state.mode !== 'playing') return;
+
+      const normalized = normalizeKey(e.key);
+      const main = (normalized !== 'ctrl' && normalized !== 'shift') ? displayMainKey(normalized) : '?';
+
+      if (!e.ctrlKey && !e.shiftKey) {
+        resetInputVisual();
+        if (!statusText.textContent.startsWith('正解')) {
+          statusText.textContent = '待機中… お題に合うショートカットを入力してください。';
+        }
+      } else {
+        setInputVisual({
+          ctrl: e.ctrlKey,
+          shift: e.shiftKey,
+          main: main
+        });
+      }
+    }, { capture: true });
+
+    window.addEventListener('beforeunload', (e) => {
+      if (state.mode === 'playing' || state.mode === 'lock') {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    });
+
+    window.addEventListener('popstate', () => {
+      if (state.mode === 'playing' || state.mode === 'lock') {
+        history.pushState({ playing: true }, '');
+      }
+    });
+
+    // =========================================================
+    // UIイベント
+    // =========================================================
+    startBtn.addEventListener('click', startGame);
+
+    passBtn.addEventListener('click', () => {
+      if (state.mode !== 'playing') return;
+      
+      state.mode = 'lock'; 
+      passBtn.disabled = true;
+      
+      const q = getCurrentQuestion();
+      if (!q) return;
+
+      state.misses += 1;
+      state.genreMisses[q.genre] += 1; 
+      updateHUD();
+
+      questionText.classList.add('answer-mode');
+      questionText.textContent = `正解： ${q.display}`;
+      statusText.textContent = 'パスしました。正解を確認してください。';
+
+      setTimeout(() => {
+        goNextQuestion();
+      }, 1000);
+    });
+
+    retryBtn.addEventListener('click', () => {
+      state.mode = 'idle';
+      stopTimer();
+      resetInputVisual();
+      timerText.textContent = '0.0 秒';
+      showScreen(startScreen);
+    });
+  </script>
+</body>
+</html>

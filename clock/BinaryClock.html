@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vertical Binary Clock</title>
+
+<style>
+body {
+    background-color: #0d0d0d;
+    color: #00ff41;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    margin: 0;
+    font-family: 'Courier New', Courier, monospace;
+    padding: 10px;
+}
+
+.clock-container {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(15px, 4vw, 30px);
+    background: #1a1a1a;
+    padding: clamp(20px, 5vw, 40px);
+    border-radius: 15px;
+    box-shadow: 0 0 20px rgba(0, 255, 65, 0.2);
+    width: 100%;
+    max-width: 500px;
+}
+
+.unit-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.label {
+    font-size: clamp(0.9rem, 3vw, 1.2rem);
+    font-weight: bold;
+    text-transform: uppercase;
+    min-width: 60px;
+}
+
+.dots-container {
+    display: flex;
+    flex-direction: row-reverse;
+    gap: clamp(6px, 2vw, 15px);
+    flex-wrap: nowrap;
+}
+
+.dot {
+    width: clamp(18px, 6vw, 28px);
+    height: clamp(18px, 6vw, 28px);
+    border-radius: 4px;
+    background-color: #333;
+    border: 1px solid #444;
+    transition: all 0.2s ease-in-out;
+}
+
+.dot.on {
+    background-color: #00ff41;
+    box-shadow: 0 0 12px #00ff41;
+    border: 1px solid #fff;
+}
+
+#digital-display {
+    margin-top: clamp(20px, 5vw, 40px);
+    font-size: clamp(1.2rem, 5vw, 1.6rem);
+    letter-spacing: 3px;
+    opacity: 0.7;
+    text-align: center;
+}
+
+.return-link {
+    margin-top: 25px;
+    text-align: center;
+}
+
+.return-link a {
+    color: #00ff41;
+    text-decoration: none;
+    font-size: clamp(0.8rem, 3vw, 1rem);
+}
+
+/* 超小型スマホ対応 */
+@media (max-width: 380px) {
+    .unit-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+
+    .dots-container {
+        width: 100%;
+        justify-content: space-between;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="clock-container">
+    <div class="unit-row">
+        <div class="label">HOURS</div>
+        <div class="dots-container" id="hours"></div>
+    </div>
+    <div class="unit-row">
+        <div class="label">MINS</div>
+        <div class="dots-container" id="minutes"></div>
+    </div>
+    <div class="unit-row">
+        <div class="label">SECS</div>
+        <div class="dots-container" id="seconds"></div>
+    </div>
+</div>
+
+<div id="digital-display">00:00:00</div>
+
+<script>
+function setupDots(id, count) {
+    const container = document.getElementById(id);
+    for (let i = 0; i < count; i++) {
+        const dot = document.createElement('div');
+        dot.className = 'dot';
+        container.appendChild(dot);
+    }
+}
+
+setupDots('hours', 5);
+setupDots('minutes', 6);
+setupDots('seconds', 6);
+
+function update() {
+    const now = new Date();
+    const h = now.getHours();
+    const m = now.getMinutes();
+    const s = now.getSeconds();
+
+    renderBinary('hours', h);
+    renderBinary('minutes', m);
+    renderBinary('seconds', s);
+
+    document.getElementById('digital-display').innerText =
+        `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+}
+
+function renderBinary(id, value) {
+    const dots = document.getElementById(id).getElementsByClassName('dot');
+    const binaryStr = value.toString(2).split('').reverse().join('');
+
+    for (let i = 0; i < dots.length; i++) {
+        if (binaryStr[i] === '1') {
+            dots[i].classList.add('on');
+        } else {
+            dots[i].classList.remove('on');
+        }
+    }
+}
+
+setInterval(update, 1000);
+update();
+</script>
+
+<div class="return-link">
+    <a href="../">&lt;- return</a>
+</div>
+
+</body>
+</html>

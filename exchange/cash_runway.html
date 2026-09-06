@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>残金であと何か月暮らせるか</title>
+	<style>
+		:root {
+			--primary-color: #4f46e5;
+			--primary-hover: #4338ca;
+			--background-color: #f3f4f6;
+			--card-background: #ffffff;
+			--text-color: #1f2937;
+			--border-color: #e5e7eb;
+		}
+
+		body {
+			font-family: 'Helvetica Neue', Arial, sans-serif;
+			background-color: var(--background-color);
+			color: var(--text-color);
+			margin: 0;
+			padding: 20px;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			min-height: 100vh;
+		}
+
+		.container {
+			background-color: var(--card-background);
+			padding: 30px;
+			border-radius: 12px;
+			box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+			width: 100%;
+			max-width: 500px;
+		}
+
+		h1 {
+			font-size: 24px;
+			text-align: center;
+			margin-bottom: 24px;
+			color: var(--primary-color);
+		}
+
+		.section-title {
+			font-size: 16px;
+			font-weight: bold;
+			margin-top: 20px;
+			margin-bottom: 10px;
+			border-left: 4px solid var(--primary-color);
+			padding-left: 8px;
+		}
+
+		.form-group {
+			margin-bottom: 16px;
+		}
+
+		label {
+			display: block;
+			font-size: 14px;
+			margin-bottom: 6px;
+			font-weight: 500;
+		}
+
+		input[type="number"], input[type="text"] {
+			width: 100%;
+			padding: 10px;
+			border: 1px solid var(--border-color);
+			border-radius: 6px;
+			font-size: 16px;
+			box-sizing: border-box;
+			transition: border-color 0.2s;
+		}
+
+		input[type="number"]:focus, input[type="text"]:focus {
+			outline: none;
+			border-color: var(--primary-color);
+		}
+
+		.grid-2 {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 10px;
+			margin-bottom: 10px;
+		}
+
+		.note {
+			font-size: 12px;
+			color: #6b7280;
+			margin-top: -10px;
+			margin-bottom: 15px;
+		}
+
+		.result-box {
+			margin-top: 24px;
+			padding: 20px;
+			background-color: #f9fafb;
+			border-radius: 8px;
+			border: 2px solid var(--primary-color);
+			text-align: center;
+			display: none;
+			animation: fadeIn 0.3s ease-in-out;
+		}
+
+		@keyframes fadeIn {
+			from { opacity: 0; transform: translateY(10px); }
+			to { opacity: 1; transform: translateY(0); }
+		}
+
+		.result-title {
+			font-size: 14px;
+			color: #4b5563;
+			margin-bottom: 8px;
+		}
+
+		.result-value {
+			font-size: 26px;
+			font-weight: bold;
+			color: var(--primary-color);
+		}
+
+		.result-sub {
+			font-size: 16px;
+			margin-top: 8px;
+			color: #374151;
+		}
+
+		.clear-btn {
+			background: none;
+			border: none;
+			color: #ef4444;
+			font-size: 12px;
+			cursor: pointer;
+			text-decoration: underline;
+			display: block;
+			margin: 20px auto 0 auto;
+		}
+		.clear-btn:hover {
+			color: #b91c1c;
+		}
+		/* リンク */
+		.footer-link {
+		    padding-left: 8px;
+		}
+
+		.footer-link a {
+		    color: #5a3a2b;
+		    text-decoration: none;
+		    font-size: 0.7rem;
+		    transition: color 0.2s;
+		}
+
+		.footer-link a:hover {
+		    color: var(--accent);
+		}
+	</style>
+</head>
+<body>
+
+<div class="container">
+	<h1>残金であと何か月暮らせるか</h1>
+
+	<!-- 残金入力 -->
+	<div class="form-group">
+		<label for="balance">現在の残金 (円)</label>
+		<input type="number" id="balance" placeholder="例: 300000" min="0">
+	</div>
+
+	<div class="note">※出費はすべて「1ヶ月あたり」の金額を入力してください。</div>
+
+	<!-- 固定費入力 -->
+	<div class="section-title">固定の出費 (月額)</div>
+	<div class="form-group">
+		<label for="rent">住居費 (円)</label>
+		<input type="number" id="rent" class="expense" placeholder="0" min="0">
+	</div>
+	<div class="form-group">
+		<label for="food">食費 (円)</label>
+		<input type="number" id="food" class="expense" placeholder="0" min="0">
+	</div>
+	<div class="form-group">
+		<label for="phone">携帯代 (円)</label>
+		<input type="number" id="phone" class="expense" placeholder="0" min="0">
+	</div>
+	<div class="form-group">
+		<label for="subscription">サブスク代 (円)</label>
+		<input type="number" id="subscription" class="expense" placeholder="0" min="0">
+	</div>
+
+	<!-- 自由入力欄 6個（JavaScriptでデータ管理しやすいようIDを付与） -->
+	<div class="section-title">その他の出費 (月額・自由入力)</div>
+	<div id="custom-expenses-container">
+		<div class="grid-2">
+			<input type="text" placeholder="費目名 1" class="custom-name" id="custom-name-1">
+			<input type="number" placeholder="金額 (円)" class="expense custom-value" id="custom-value-1" min="0">
+		</div>
+		<div class="grid-2">
+			<input type="text" placeholder="費目名 2" class="custom-name" id="custom-name-2">
+			<input type="number" placeholder="金額 (円)" class="expense custom-value" id="custom-value-2" min="0">
+		</div>
+		<div class="grid-2">
+			<input type="text" placeholder="費目名 3" class="custom-name" id="custom-name-3">
+			<input type="number" placeholder="金額 (円)" class="expense custom-value" id="custom-value-3" min="0">
+		</div>
+		<div class="grid-2">
+			<input type="text" placeholder="費目名 4" class="custom-name" id="custom-name-4">
+			<input type="number" placeholder="金額 (円)" class="expense custom-value" id="custom-value-4" min="0">
+		</div>
+		<div class="grid-2">
+			<input type="text" placeholder="費目名 5" class="custom-name" id="custom-name-5">
+			<input type="number" placeholder="金額 (円)" class="expense custom-value" id="custom-value-5" min="0">
+		</div>
+		<div class="grid-2">
+			<input type="text" placeholder="費目名 6" class="custom-name" id="custom-name-6">
+			<input type="number" placeholder="金額 (円)" class="expense custom-value" id="custom-value-6" min="0">
+		</div>
+	</div>
+
+	<!-- 結果表示 -->
+	<div class="result-box" id="resultBox">
+		<div class="result-title">現在の残金で暮らせる期間</div>
+		<div class="result-value" id="resultMonths">あと 0 ヶ月</div>
+		<div class="result-sub" id="resultDays">（約 0 日間）</div>
+	</div>
+
+	<!-- データリセットボタン -->
+	<button class="clear-btn" onclick="clearSavedData()">すべての入力をクリアする</button>
+	<div class="footer-link">
+		<a href="../">← RETURN</a>
+	</div>
+</div>
+
+<script>
+	// 計算メイン処理
+	function calculateLifespan() {
+		const balanceInput = document.getElementById('balance').value;
+		const balance = parseFloat(balanceInput);
+
+		const expenseInputs = document.querySelectorAll('.expense');
+		let totalMonthlyExpense = 0;
+
+		expenseInputs.forEach(input => {
+			const value = parseFloat(input.value);
+			if (!isNaN(value)) {
+				totalMonthlyExpense += value;
+			}
+		});
+
+		const resultBox = document.getElementById('resultBox');
+		const resultMonths = document.getElementById('resultMonths');
+		const resultDays = document.getElementById('resultDays');
+
+		if (balanceInput === "" && totalMonthlyExpense === 0) {
+			resultBox.style.display = 'none';
+			return;
+		}
+
+		resultBox.style.display = 'block';
+
+		if (isNaN(balance) || balance <= 0) {
+			resultMonths.textContent = '残金を入力してください';
+			resultDays.textContent = '（残金が0円、または空欄です）';
+			return;
+		}
+
+		if (totalMonthlyExpense <= 0) {
+			resultMonths.textContent = '無限に暮らせます';
+			resultDays.textContent = '設定された月間の出費が0円です。';
+			return;
+		}
+
+		const months = balance / totalMonthlyExpense;
+		const days = Math.floor(months * 30.5);
+
+		const formattedMonths = Number(months.toFixed(2));
+		resultMonths.textContent = `あと ${formattedMonths} ヶ月`;
+		resultDays.textContent = `（約 ${days.toLocaleString()} 日間）`;
+	}
+
+	// データをlocalStorageに一括保存する処理
+	function saveData() {
+		const data = {};
+		
+		// すべてのinput要素（テキスト、数値）をループして現在の値をオブジェクトに記録
+		document.querySelectorAll('input').forEach(input => {
+			if (input.id) {
+				data[input.id] = input.value;
+			}
+		});
+
+		// シリアライズしてブラウザに保存
+		localStorage.setItem('budget_counter_data', JSON.stringify(data));
+	}
+
+	// ページが開かれたときにlocalStorageからデータを復元する処理
+	function loadData() {
+		const savedData = localStorage.getItem('budget_counter_data');
+		if (!savedData) return;
+
+		const data = JSON.parse(savedData);
+		
+		// 保存されていたデータを各入力欄にセット
+		Object.keys(data).forEach(id => {
+			const input = document.getElementById(id);
+			if (input) {
+				input.value = data[id];
+			}
+		});
+
+		// データを読み込んだ後に自動で計算を実行
+		calculateLifespan();
+	}
+
+	// データをすべて削除して初期化する処理
+	function clearSavedData() {
+		if (confirm('入力された内容をすべて消去します。よろしいですか？')) {
+			localStorage.removeItem('budget_counter_data');
+			document.querySelectorAll('input').forEach(input => {
+				input.value = '';
+			});
+			calculateLifespan();
+		}
+	}
+
+	// 各入力欄へのイベント設定
+	document.querySelectorAll('input').forEach(input => {
+		input.addEventListener('input', () => {
+			calculateLifespan(); // 計算する
+			saveData();			 // 保存する
+		});
+	});
+
+	// ページが読み込まれたら実行
+	window.addEventListener('DOMContentLoaded', loadData);
+</script>
+
+</body>
+</html>

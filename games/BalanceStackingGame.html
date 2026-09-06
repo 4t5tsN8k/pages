@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>物理バランス積みゲーム</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+
+<style>
+body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: #f0f0f0;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    user-select: none;
+    touch-action: none;
+}
+canvas { display: block; }
+
+#ui-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    pointer-events: none;
+    color: #333;
+    padding: 20px;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+.stats {
+    background: rgba(255,255,255,0.8);
+    padding: 10px 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    pointer-events: auto;
+}
+.stat-label { font-size:12px; color:#666; margin-bottom:2px;}
+.stat-value { font-size:24px; font-weight:bold;}
+
+.overlay{
+    position:absolute;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background:rgba(0,0,0,0.7);
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    color:white;
+    z-index:10;
+}
+.hidden{ display:none!important;}
+
+h1{ margin-bottom:10px;font-size:32px;}
+
+.btn{
+    padding:15px 40px;
+    font-size:20px;
+    background:#4CAF50;
+    color:white;
+    border:none;
+    border-radius:30px;
+    cursor:pointer;
+    margin-top:20px;
+}
+.btn-reset{ background:#f44336;}
+
+.final-score{
+    font-size:48px;
+    font-weight:bold;
+    margin:10px 0;
+    color:#ffeb3b;
+}
+        .return-link {
+            margin-top: 15px;
+            text-align: center;
+        }
+        .return-link a {
+            color: #00aa66;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+</style>
+</head>
+
+<body>
+
+<div id="ui-container">
+<div class="stats">
+<div class="stat-label">スコア</div>
+<div id="score" class="stat-value">0</div>
+</div>
+
+<div class="stats">
+<div class="stat-label">現在の高さ</div>
+<div id="height" class="stat-value">0m</div>
+</div>
+</div>
+
+<div id="start-screen" class="overlay">
+<h1>バランス積み物理ゲーム</h1>
+<p>ブロックを落として高く積み上げよう！</p>
+<button id="start-btn" class="btn">ゲーム開始</button>
+<div class="return-link"><a href="../">&lt;- return</a></div>
+</div>
+
+<div id="game-over-screen" class="overlay hidden">
+<h1>GAME OVER</h1>
+<p>最終スコア</p>
+<div id="final-score" class="final-score">0</div>
+<button id="restart-btn" class="btn">もう一度挑戦</button>
+            <div class="return-link">
+                <a href="../">&lt;- return</a>
+            </div>
+</div>
+
+<canvas id="gameCanvas"></canvas>
+
+<script>
+(() => {
+
+const { Engine, Runner, Bodies, Composite, Body } = Matter;
+
+let engine, runner, canvas, ctx;
+let width, height;
+
+let isPlaying = false;
+let isGameOver = false;
+let score = 0;
+let maxHeight = 0;
+let currentBlock = null;
+let blocks = [];
+let ground;
+let mouseX = 0;
+
+let isTouching = false;   // ★追加
+
+const COLORS = ['#FF5722','#2196F3','#4CAF50','#FFC107','#9C27B0','#00BCD4'];
+const GROUND_HEIGHT = 60;
+const PLATFORM_WIDTH = 200;
+
+function init(){
+
+canvas = document.getElementById('gameCanvas');
+ctx = canvas.getContext('2d');
+
+engine = Engine.create();
+runner = Runner.create();
+
+resize();
+window.addEventListener('resize', resize);
+
+window.addEventListener('mousemove', e=>{
+    mouseX = e.clientX;
+});
+
+window.addEventListener('touchmove', e=>{
+    if(e.touches.length>0){
+        mouseX = e.touches[0].clientX;
+    }
+},{passive:false});
+
+window.addEventListener('mousedown', handleClick);
+
+window.addEventListener('touchstart', e=>{
+    isTouching = true;
+    if(e.touches.length>0){
+        mouseX = e.touches[0].clientX;
+    }
+},{passive:false});
+
+window.addEventListener('touchend', ()=>{
+    if(isTouching){
+        handleClick();
+    }
+    isTouching=false;
+});
+
+document.getElementById('start-btn').onclick=startGame;
+document.getElementById('restart-btn').onclick=startGame;
+
+requestAnimationFrame(update);
+}
+
+function startGame(){
+
+Composite.clear(engine.world);
+
+blocks=[];
+score=0;
+maxHeight=0;
+isGameOver=false;
+isPlaying=true;
+
+document.getElementById('start-screen').classList.add('hidden');
+document.getElementById('game-over-screen').classList.add('hidden');
+
+ground = Bodies.rectangle(
+width/2,
+height-20,
+PLATFORM_WIDTH,
+GROUND_HEIGHT,
+{isStatic:true}
+);
+
+Composite.add(engine.world,ground);
+
+spawnNextBlock();
+
+Runner.run(runner,engine);
+}
+
+function spawnNextBlock(){
+
+if(!isPlaying||isGameOver) return;
+
+const sizeBase=Math.random()*30+30;
+const type=Math.floor(Math.random()*4);
+const color=COLORS[Math.floor(Math.random()*COLORS.length)];
+
+let body;
+const x=mouseX||width/2;
+const y=80;
+
+switch(type){
+case 0: body=Bodies.rectangle(x,y,sizeBase,sizeBase); break;
+case 1: body=Bodies.rectangle(x,y,sizeBase*2,sizeBase/1.5); break;
+case 2: body=Bodies.circle(x,y,sizeBase/1.5); break;
+case 3: body=Bodies.polygon(x,y,3,sizeBase); break;
+}
+
+Body.set(body,{
+isStatic:true,
+friction:0.8,
+restitution:0.2,
+render:{fillStyle:color}
+});
+
+Body.setAngle(body,Math.random()*Math.PI);
+
+currentBlock=body;
+Composite.add(engine.world,currentBlock);
+}
+
+function handleClick(){
+
+if(!isPlaying||isGameOver||!currentBlock) return;
+
+Body.setStatic(currentBlock,false);
+
+blocks.push(currentBlock);
+currentBlock=null;
+
+score++;
+updateUI();
+
+setTimeout(()=>{
+if(!isGameOver) spawnNextBlock();
+},800);
+}
+
+function update(){
+
+if(isPlaying&&!isGameOver){
+
+if(currentBlock){
+Body.setPosition(currentBlock,{x:mouseX,y:80});
+}
+
+checkGameOver();
+calculateHeight();
+}
+
+render();
+requestAnimationFrame(update);
+}
+
+function calculateHeight(){
+
+if(blocks.length===0) return;
+
+let highestY=height;
+
+blocks.forEach(b=>{
+if(b.position.y<highestY) highestY=b.position.y;
+});
+
+const meters=Math.max(
+0,
+Math.floor((ground.position.y-GROUND_HEIGHT/2-highestY)/10)
+);
+
+if(meters>maxHeight){
+maxHeight=meters;
+updateUI();
+}
+}
+
+function checkGameOver(){
+
+for(let b of blocks){
+if(
+b.position.y>height+100||
+b.position.x<-100||
+b.position.x>width+100
+){
+endGame();
+break;
+}
+}
+}
+
+function endGame(){
+
+isGameOver=true;
+isPlaying=false;
+Runner.stop(runner);
+
+document.getElementById('final-score').innerText=score;
+document.getElementById('game-over-screen').classList.remove('hidden');
+}
+
+function render(){
+
+ctx.clearRect(0,0,width,height);
+
+const bodies=Composite.allBodies(engine.world);
+
+bodies.forEach(body=>{
+
+ctx.beginPath();
+const v=body.vertices;
+
+ctx.moveTo(v[0].x,v[0].y);
+for(let i=1;i<v.length;i++){
+ctx.lineTo(v[i].x,v[i].y);
+}
+ctx.closePath();
+
+ctx.fillStyle=body.render.fillStyle||'#333';
+ctx.fill();
+
+ctx.strokeStyle='rgba(0,0,0,0.1)';
+ctx.lineWidth=2;
+ctx.stroke();
+});
+
+if(currentBlock&&isPlaying){
+ctx.setLineDash([5,5]);
+ctx.beginPath();
+ctx.moveTo(currentBlock.position.x,currentBlock.position.y);
+ctx.lineTo(currentBlock.position.x,height);
+ctx.strokeStyle='rgba(0,0,0,0.1)';
+ctx.stroke();
+ctx.setLineDash([]);
+}
+}
+
+function updateUI(){
+document.getElementById('score').innerText=score;
+document.getElementById('height').innerText=maxHeight+"m";
+}
+
+function resize(){
+
+width=window.innerWidth;
+height=window.innerHeight;
+
+canvas.width=width*window.devicePixelRatio;
+canvas.height=height*window.devicePixelRatio;
+canvas.style.width=width+'px';
+canvas.style.height=height+'px';
+
+ctx.setTransform(window.devicePixelRatio,0,0,window.devicePixelRatio,0,0);
+
+if(ground){
+Body.setPosition(ground,{x:width/2,y:height-20});
+}
+}
+
+init();
+
+})();
+</script>
+</body>
+</html>

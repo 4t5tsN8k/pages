@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ストップウォッチ</title>
+
+<style>
+body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: #111;
+    color: #00ff88;
+    font-family: monospace;
+}
+
+#display {
+    font-size: 16vmin;
+    margin-bottom: 2vmin;
+    text-shadow: 0 0 2vmin rgba(0,255,136,0.7);
+}
+
+.buttons {
+    display: flex;
+    gap: 2vmin;
+    margin-bottom: 2vmin;
+}
+
+button {
+    font-size: 3.5vmin;
+    padding: 1vmin 3vmin;
+    border: none;
+    border-radius: 1vmin;
+    background: #222;
+    color: #00ff88;
+    cursor: pointer;
+}
+
+#laps {
+    font-size: 3vmin;
+    text-align: left;
+    line-height: 1.4;
+}
+</style>
+</head>
+
+<body>
+
+<div id="display">00:00:00</div>
+
+<div class="buttons">
+    <button onclick="toggle()">開始/停止</button>
+    <button onclick="lap()">ラップ</button>
+    <button onclick="resetWatch()">リセット</button>
+</div>
+
+<div id="laps"></div>
+
+<div style="margin-top:20px; text-align:center;">
+    <a href="../" style="color:#00ff41; text-decoration:none; font-size:0.5rem;">
+        <- return
+    </a>
+</div>
+
+<script>
+let startTime = 0;
+let elapsed = 0;
+let timer = null;
+let running = false;
+
+const MAX_LAPS = 10;
+let lapIndex = 0;
+let lapData = new Array(MAX_LAPS).fill("--:--:--");
+
+// 初期表示
+function initLaps() {
+    const container = document.getElementById("laps");
+    container.innerHTML = "";
+    for (let i = 0; i < MAX_LAPS; i++) {
+        const div = document.createElement("div");
+        div.textContent = `Lap ${i+1}  --:--:--`;
+        container.appendChild(div);
+    }
+}
+
+function renderLaps() {
+    const container = document.getElementById("laps");
+    const children = container.children;
+
+    for (let i = 0; i < MAX_LAPS; i++) {
+        children[i].textContent = `Lap ${i+1}  ${lapData[i]}`;
+    }
+}
+
+function toggle() {
+    if (!running) {
+        running = true;
+        startTime = Date.now() - elapsed;
+        timer = setInterval(update, 10);
+    } else {
+        running = false;
+        clearInterval(timer);
+    }
+}
+
+function resetWatch() {
+    running = false;
+    clearInterval(timer);
+    elapsed = 0;
+    lapIndex = 0;
+    lapData = new Array(MAX_LAPS).fill("--:--:--");
+    document.getElementById("display").textContent = "00:00:00";
+    renderLaps();
+}
+
+function lap() {
+    if (!running) return;
+
+    const time = document.getElementById("display").textContent;
+
+    lapData[lapIndex] = time;
+    lapIndex = (lapIndex + 1) % MAX_LAPS;
+
+    renderLaps();
+}
+
+function update() {
+    elapsed = Date.now() - startTime;
+
+    const ms = Math.floor((elapsed % 1000) / 10);
+    const sec = Math.floor(elapsed / 1000) % 60;
+    const min = Math.floor(elapsed / 60000) % 60;
+
+    document.getElementById("display").textContent =
+        `${String(min).padStart(2,'0')}:` +
+        `${String(sec).padStart(2,'0')}:` +
+        `${String(ms).padStart(2,'0')}`;
+}
+
+initLaps();
+</script>
+
+</body>
+</html>

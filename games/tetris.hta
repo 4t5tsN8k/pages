@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Tetris</title>
+
+<style>
+body{
+  background:#111;
+  color:white;
+  font-family:sans-serif;
+  text-align:center;
+}
+
+#game{
+  display:flex;
+  justify-content:center;
+  gap:20px;
+  margin-top:20px;
+}
+
+#board{
+  display:grid;
+  grid-template-columns:repeat(10,30px);
+  grid-template-rows:repeat(16,30px);
+  background:#222;
+  border:3px solid #555;
+}
+
+.cell{
+  width:30px;
+  height:30px;
+  border:1px solid #333;
+  box-sizing:border-box;
+}
+
+#side{
+  text-align:left;
+}
+
+button{
+  padding:6px 12px;
+  margin-top:10px;
+}
+</style>
+
+<script>
+const COLS=10;
+const ROWS=16;
+
+let board=[];
+let current;
+let score=0;
+let interval;
+
+const shapes=[
+[[1,1,1,1]],                 // I
+[[1,1],[1,1]],               // O
+[[0,1,0],[1,1,1]],           // T
+[[1,0,0],[1,1,1]],           // J
+[[0,0,1],[1,1,1]],           // L
+[[1,1,0],[0,1,1]],           // S
+[[0,1,1],[1,1,0]]            // Z
+];
+
+function init(){
+  board=[];
+  score=0;
+  for(let r=0;r<ROWS;r++){
+    board[r]=Array(COLS).fill(0);
+  }
+  spawn();
+  draw();
+  start();
+}
+
+function spawn(){
+  const shape=shapes[Math.floor(Math.random()*shapes.length)];
+  current={
+    shape:shape,
+    r:0,
+    c:3
+  };
+}
+
+function rotate(shape){
+  return shape[0].map((_,i)=>shape.map(row=>row[i]).reverse());
+}
+
+function collide(r,c,shape){
+  for(let y=0;y<shape.length;y++){
+    for(let x=0;x<shape[y].length;x++){
+      if(!shape[y][x]) continue;
+
+      let nr=r+y;
+      let nc=c+x;
+
+      if(nr>=ROWS || nc<0 || nc>=COLS) return true;
+      if(nr>=0 && board[nr][nc]) return true;
+    }
+  }
+  return false;
+}
+
+function merge(){
+  current.shape.forEach((row,y)=>{
+    row.forEach((val,x)=>{
+      if(val){
+        board[current.r+y][current.c+x]=1;
+      }
+    });
+  });
+}
+
+function clearLines(){
+  for(let r=ROWS-1;r>=0;r--){
+    if(board[r].every(v=>v)){
+      board.splice(r,1);
+      board.unshift(Array(COLS).fill(0));
+      score+=100;
+      r++;
+    }
+  }
+}
+
+function drop(){
+  if(!collide(current.r+1,current.c,current.shape)){
+    current.r++;
+  }else{
+    merge();
+    clearLines();
+    spawn();
+    if(collide(current.r,current.c,current.shape)){
+      alert("ゲームオーバー");
+      clearInterval(interval);
+    }
+  }
+  draw();
+}
+
+function draw(){
+  const el=document.getElementById("board");
+  el.innerHTML="";
+
+  for(let r=0;r<ROWS;r++){
+    for(let c=0;c<COLS;c++){
+      const cell=document.createElement("div");
+      cell.className="cell";
+      if(board[r][c]) cell.style.background="#0ff";
+      el.appendChild(cell);
+    }
+  }
+
+  current.shape.forEach((row,y)=>{
+    row.forEach((val,x)=>{
+      if(val){
+        const index=(current.r+y)*COLS+(current.c+x);
+        const cell=document.getElementById("board").children[index];
+        if(cell) cell.style.background="#f80";
+      }
+    });
+  });
+
+  document.getElementById("score").textContent=score;
+}
+
+function start(){
+  clearInterval(interval);
+  interval=setInterval(drop,500);
+}
+
+document.onkeydown=e=>{
+  if(e.key==="ArrowLeft"){
+    if(!collide(current.r,current.c-1,current.shape))
+      current.c--;
+  }
+
+  if(e.key==="ArrowRight"){
+    if(!collide(current.r,current.c+1,current.shape))
+      current.c++;
+  }
+
+  if(e.key==="ArrowDown"){
+    drop();
+  }
+
+  if(e.key==="ArrowUp"){
+    const rot=rotate(current.shape);
+    if(!collide(current.r,current.c,rot))
+      current.shape=rot;
+  }
+
+  draw();
+};
+</script>
+
+</head>
+
+<body onload="init()">
+
+<h2>Tetris</h2>
+
+<div id="game">
+  <div id="board"></div>
+
+  <div id="side">
+    <div>Score: <span id="score">0</span></div>
+    <button onclick="init()">Restart</button>
+
+    <p>
+    ← → : 移動<br>
+    ↑ : 回転<br>
+    ↓ : 落下
+    </p>
+    <div style="margin-top:20px; text-align:center;">
+  <a href="../" style="color:#00ff41; text-decoration:none; font-size:0.5rem;">
+    <- return
+  </a>
+</div>
+  </div>
+</div>
+
+
+</body>
+</html>

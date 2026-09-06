@@ -1,0 +1,298 @@
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Minesweeper HTA</title>
+
+<HTA:APPLICATION
+  APPLICATIONNAME="Minesweeper"
+  BORDER="thin"
+  CAPTION="yes"
+  SHOWINTASKBAR="yes"
+  SINGLEINSTANCE="yes"
+/>
+
+<style>
+body{
+  font-family:sans-serif;
+  background:#ddd;
+  text-align:center;
+}
+
+#boardWrapper{
+  text-align:center;
+}
+
+#board{
+  margin:10px auto;
+  border:2px solid #888;
+  background:#aaa;
+  text-align:left;
+}
+
+.row{
+  clear:both;
+  height:24px;
+}
+
+.cell{
+  width:24px;
+  height:24px;
+  border:1px solid #777;
+  background:#bbb;
+  float:left;
+  line-height:24px;
+  font-size:13px;
+  cursor:pointer;
+  text-align:center;
+}
+
+.open{ background:#eee; cursor:default; }
+.mine{
+  background:red;
+  color:white;
+  font-weight:bold;
+}
+
+.flag{
+  background:orange;
+  font-weight:bold;
+}
+
+#topbar{
+  margin:10px;
+  font-size:16px;
+}
+</style>
+
+<script>
+var rows, cols, mines;
+var board=[];
+var opened=0;
+var gameOver=false;
+
+var timer=0;
+var timerInterval=null;
+var firstClick=true;
+
+var flags=0;
+
+function setDifficulty(level){
+  if(level=="easy"){
+    rows=9; cols=9; mines=10;
+  }else if(level=="medium"){
+    rows=16; cols=16; mines=40;
+  }else{
+    rows=16; cols=30; mines=99;
+  }
+  init();
+}
+
+function startTimer(){
+  if(timerInterval) clearInterval(timerInterval);
+  timerInterval=setInterval(function(){
+    timer++;
+    document.getElementById("timer").innerText=timer;
+  },1000);
+}
+
+function stopTimer(){
+  if(timerInterval) clearInterval(timerInterval);
+}
+
+function updateMineCounter(){
+  document.getElementById("mineCounter").innerText=mines-flags;
+}
+
+function init(){
+  board=[];
+  opened=0;
+  gameOver=false;
+  timer=0;
+  firstClick=true;
+  flags=0;
+
+  stopTimer();
+  document.getElementById("timer").innerText="0";
+
+  var container=document.getElementById("board");
+  container.innerHTML="";
+  container.style.width = (cols * 26) + "px";
+
+  for(var r=0;r<rows;r++){
+
+    var row=document.createElement("div");
+    row.className="row";
+
+    board[r]=[];
+
+    for(var c=0;c<cols;c++){
+
+      board[r][c]={mine:false,count:0,open:false,flag:false};
+
+      var cell=document.createElement("div");
+      cell.className="cell";
+      cell.id="cell_"+r+"_"+c;
+
+      cell.onclick=(function(rr,cc){
+        return function(){openCell(rr,cc);}
+      })(r,c);
+
+      cell.oncontextmenu=(function(rr,cc){
+        return function(){toggleFlag(rr,cc);return false;}
+      })(r,c);
+
+      row.appendChild(cell);
+    }
+
+    container.appendChild(row);
+  }
+
+  var placed=0;
+  while(placed<mines){
+    var r=Math.floor(Math.random()*rows);
+    var c=Math.floor(Math.random()*cols);
+    if(!board[r][c].mine){
+      board[r][c].mine=true;
+      placed++;
+    }
+  }
+
+  for(var r=0;r<rows;r++){
+    for(var c=0;c<cols;c++){
+      if(!board[r][c].mine){
+        board[r][c].count=countMines(r,c);
+      }
+    }
+  }
+
+  updateMineCounter();
+}
+
+function countMines(r,c){
+  var count=0;
+  for(var dr=-1;dr<=1;dr++){
+    for(var dc=-1;dc<=1;dc++){
+      var nr=r+dr;
+      var nc=c+dc;
+      if(nr>=0 && nr<rows && nc>=0 && nc<cols){
+        if(board[nr][nc].mine) count++;
+      }
+    }
+  }
+  return count;
+}
+
+function openCell(r,c){
+  if(gameOver) return;
+
+  if(firstClick){
+    startTimer();
+    firstClick=false;
+  }
+
+  var cell=board[r][c];
+  if(cell.open || cell.flag) return;
+
+  cell.open=true;
+  opened++;
+
+  var el=document.getElementById("cell_"+r+"_"+c);
+  el.className="cell open";
+
+  if(cell.mine){
+    el.innerHTML="💣";
+    revealMines();
+    stopTimer();
+    alert("ゲームオーバー");
+    gameOver=true;
+    return;
+  }
+
+  if(cell.count>0){
+    el.innerHTML=cell.count;
+  }else{
+    for(var dr=-1;dr<=1;dr++){
+      for(var dc=-1;dc<=1;dc++){
+        var nr=r+dr;
+        var nc=c+dc;
+        if(nr>=0 && nr<rows && nc>=0 && nc<cols){
+          openCell(nr,nc);
+        }
+      }
+    }
+  }
+
+  if(opened==rows*cols-mines){
+    stopTimer();
+    alert("クリア！ タイム: "+timer+"秒");
+    gameOver=true;
+  }
+}
+
+function toggleFlag(r,c){
+  if(gameOver) return;
+
+  var cell=board[r][c];
+  if(cell.open) return;
+
+  var el=document.getElementById("cell_"+r+"_"+c);
+
+  cell.flag=!cell.flag;
+
+  if(cell.flag){
+    flags++;
+    el.innerHTML="🚩";
+    el.className="cell flag";
+  }else{
+    flags--;
+    el.innerHTML="";
+    el.className="cell";
+  }
+
+  updateMineCounter();
+}
+
+function revealMines(){
+  for(var r=0;r<rows;r++){
+    for(var c=0;c<cols;c++){
+      if(board[r][c].mine){
+        var el=document.getElementById("cell_"+r+"_"+c);
+        el.innerHTML="💣";
+        el.className="cell mine";
+      }
+    }
+  }
+}
+</script>
+</head>
+
+<body onload="setDifficulty('easy')">
+
+<h2>HTA マインスイーパー💣</h2>
+
+<div id="topbar">
+難易度:
+<button onclick="setDifficulty('easy')">初級</button>
+<button onclick="setDifficulty('medium')">中級</button>
+<button onclick="setDifficulty('hard')">上級</button>
+｜
+⏰ <span id="timer">0</span> 秒
+｜
+💣 <span id="mineCounter">0</span>
+</div>
+
+<div id="boardWrapper">
+  <div id="board"></div>
+</div>
+
+<p>
+左クリック: 開く<br>
+右クリック: 旗 🚩
+</p>
+<div style="margin-top:20px; text-align:center;">
+  <a href="../" style="color:#00ff41; text-decoration:none; font-size:0.5rem;">
+    <- return
+  </a>
+</div>
+</body>
+</html>

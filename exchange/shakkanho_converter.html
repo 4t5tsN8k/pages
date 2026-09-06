@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>尺貫法 リアルタイム単位変換ツール</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #d35400;
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --border-color: #e2e8f0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: #333;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            color: var(--primary-color);
+            margin-top: 0;
+            margin-bottom: 24px;
+            text-align: center;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 12px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: var(--primary-color);
+            font-size: 0.9rem;
+        }
+
+        select, input[type="number"] {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 1rem;
+            box-sizing: border-box;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        select:focus, input[type="number"]:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(211, 84, 0, 0.15);
+        }
+
+        .input-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .results-card {
+            background-color: #fdfbf7;
+            border: 1px solid #f0e6d2;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 24px;
+        }
+
+        .results-card h2 {
+            font-size: 1.1rem;
+            margin-top: 0;
+            margin-bottom: 12px;
+            color: var(--accent-color);
+        }
+
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px dashed var(--border-color);
+        }
+
+        .result-item:last-child {
+            border-bottom: none;
+        }
+
+        .unit-name {
+            font-weight: 500;
+            color: #555;
+        }
+
+        .unit-value {
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: var(--primary-color);
+            word-break: break-all;
+            text-align: right;
+            margin-left: 10px;
+        }
+
+        .return-link {
+          margin-top: 15px;
+          text-align: center;
+        }
+
+        .return-link a {
+          color: #00aa66;
+          text-decoration: none;
+          font-size: 0.9rem;
+        }
+    
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>尺貫法 リアルタイム単位変換器</h1>
+
+    <!-- 1. 量の種類（カテゴリ）の選択 -->
+    <div class="form-group">
+        <label for="category">量の種類</label>
+        <select id="category">
+            <option value="length">長さ</option>
+            <option value="weight">重さ（質量）</option>
+            <option value="area">面積</option>
+            <option value="volume">体積（容量）</option>
+        </select>
+    </div>
+
+    <!-- 2. 数値入力 と 変換元単位の選択 -->
+    <div class="form-group input-grid">
+        <div>
+            <label for="inputValue">変換する数値</label>
+            <input type="number" id="inputValue" value="1" step="any" min="0" placeholder="数字を入力">
+        </div>
+        <div>
+            <label for="fromUnit">変換元単位</label>
+            <select id="fromUnit"></select>
+        </div>
+    </div>
+
+    <!-- 変換結果のリアルタイム表示 -->
+    <div class="results-card">
+        <h2>変換結果</h2>
+        <div id="resultsList"></div>
+    </div>
+
+    <div class="return-link">
+        <a href="../">&lt;- return</a>
+    </div>
+
+</div>
+
+<script>
+    // 単位の定義データ（各カテゴリのベース単位に対する基準値）
+    // 長さ: メートル(m)基準 / 重さ: グラム(g)基準 / 面積: 平方メートル(m²)基準 / 体積: リットル(L)基準
+    const unitData = {
+        length: {
+            base: 'm',
+            units: [
+                { id: 'shaku', name: '尺（しゃく）', factor: 10 / 33 },        // 1尺 ≒ 0.30303m
+                { id: 'sun', name: '寸（すん）', factor: 1 / 33 },           // 1寸 = 0.1尺
+                { id: 'ken', name: '間（けん）', factor: 20 / 33 },          // 1間 = 6尺
+                { id: 'jo', name: '丈（じょう）', factor: 100 / 33 },        // 1丈 = 10尺
+                { id: 'ri', name: '里（り）', factor: (10 / 33) * 12960 },   // 1里 = 12960尺 ≒ 3.927km
+                { id: 'cm', name: 'センチメートル (cm)', factor: 0.01 },
+                { id: 'm', name: 'メートル (m)', factor: 1 },
+                { id: 'km', name: 'キロメートル (km)', factor: 1000 }
+            ]
+        },
+        weight: {
+            base: 'g',
+            units: [
+                { id: 'monme', name: '匁（もんめ）', factor: 3.75 },         // 1匁 = 3.75g
+                { id: 'hyakume', name: '百匁（ひゃくめ）', factor: 375 },
+                { id: 'kan', name: '貫（かん）', factor: 3750 },             // 1貫 = 1000匁 = 3.75kg
+                { id: 'kin', name: '斤（きん）', factor: 600 },              // 1斤 = 160匁 = 600g
+                { id: 'g', name: 'グラム (g)', factor: 1 },
+                { id: 'kg', name: 'キログラム (kg)', factor: 1000 }
+            ]
+        },
+        area: {
+            base: 'm2',
+            units: [
+                { id: 'tsubo', name: '坪（つぼ）', factor: 400 / 121 },       // 1坪 ≒ 3.30578m²
+                { id: 'bu', name: '歩（ぶ）', factor: 400 / 121 },           // 1歩 = 1坪
+                { id: 'se', name: '畝（せ）', factor: (400 / 121) * 30 },     // 1畝 = 30坪
+                { id: 'tan', name: '反（たん）', factor: (400 / 121) * 300 },   // 1反 = 10畝 = 300坪
+                { id: 'cho', name: '町（ちょう）', factor: (400 / 121) * 3000 },// 1町 = 10反 = 3000坪
+                { id: 'm2', name: '平方メートル (m²)', factor: 1 },
+                { id: 'tatami', name: '畳/中京間 (じょう)', factor: 1.6562 }  // 1畳 ≒ 1.6562m²
+            ]
+        },
+        volume: {
+            base: 'L',
+            units: [
+                { id: 'sho', name: '升（しょう）', factor: 2401 / 1331 },     // 1升 ≒ 1.8039L
+                { id: 'go', name: '合（ごう）', factor: 2401 / 13310 },      // 1合 = 0.1升 ≒ 180.39mL
+                { id: 'koku', name: '石（こく）', factor: (2401 / 1331) * 100 },// 1石 = 100升
+                { id: 'to', name: '斗（と）', factor: (2401 / 1331) * 10 },    // 1斗 = 10升
+                { id: 'ml', name: 'ミリリットル (mL)', factor: 0.001 },
+                { id: 'l', name: 'リットル (L)', factor: 1 }
+            ]
+        }
+    };
+
+    // DOM要素の取得
+    const categorySelect = document.getElementById('category');
+    const fromUnitSelect = document.getElementById('fromUnit');
+    const inputValueInput = document.getElementById('inputValue');
+    const resultsList = document.getElementById('resultsList');
+
+    // 変換元セレクトボックスの選択肢を更新する関数
+    function updateUnitOptions() {
+        const category = categorySelect.value;
+        const units = unitData[category].units;
+        
+        fromUnitSelect.innerHTML = '';
+        units.forEach(unit => {
+            const option = document.createElement('option');
+            option.value = unit.id;
+            option.textContent = unit.name;
+            fromUnitSelect.appendChild(option);
+        });
+
+        // デフォルトで尺貫法の代表的な単位（配列の最初）を選択
+        fromUnitSelect.selectedIndex = 0;
+        calculate();
+    }
+
+    // 計算と結果の更新処理
+    function calculate() {
+        const category = categorySelect.value;
+        const val = parseFloat(inputValueInput.value);
+        const fromUnitId = fromUnitSelect.value;
+        const units = unitData[category].units;
+
+        resultsList.innerHTML = '';
+
+        // 入力が数値でない、または空の場合は表示をクリア
+        if (isNaN(val)) {
+            resultsList.innerHTML = '<div style="color: #888; text-align: center;">有効な数字を入力してください</div>';
+            return;
+        }
+
+        // 選択された単位のオブジェクトを取得
+        const fromUnitObj = units.find(u => u.id === fromUnitId);
+        if (!fromUnitObj) return;
+
+        // 一旦ベース単位に換算する (入力値 × 変換元の係数)
+        const baseValue = val * fromUnitObj.factor;
+
+        // 各単位へ変換して一覧表示
+        units.forEach(unit => {
+            // 変換結果 = ベース値 / 各単位の係数
+            const convertedValue = baseValue / unit.factor;
+            
+            // 表示用の数値を整形（非常に小さい/大きい数値の調整・不要な末尾の0を削除）
+            const formattedValue = formatNumber(convertedValue);
+
+            const item = document.createElement('div');
+            item.className = 'result-item';
+            
+            // 選択中の変換元と同じ単位の場合はハイライト表示
+            if (unit.id === fromUnitId) {
+                item.style.backgroundColor = '#f0f7ff';
+                item.style.paddingLeft = '8px';
+                item.style.paddingRight = '8px';
+                item.style.borderRadius = '4px';
+            }
+
+            item.innerHTML = `
+                <span class="unit-name">${unit.name}</span>
+                <span class="unit-value">${formattedValue}</span>
+            `;
+            resultsList.appendChild(item);
+        });
+    }
+
+    // 数値の表示形式を綺麗に整えるヘルパー関数
+    function formatNumber(num) {
+        if (num === 0) return '0';
+        
+        // 小数点以下の表示桁数を調整（最大6桁）
+        let formatted = Number(num.toFixed(6)).toString();
+        
+        // 桁数が非常に多いか極小の場合は指数表記を回避して読みやすく調整
+        return Number(formatted).toLocaleString('ja-JP', { maximumFractionDigits: 6 });
+    }
+
+    // イベントリスナー設定（リアルタイム更新用）
+    categorySelect.addEventListener('change', updateUnitOptions);
+    fromUnitSelect.addEventListener('change', calculate);
+    inputValueInput.addEventListener('input', calculate);
+
+    // 初期化実行
+    updateUnitOptions();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>世界時差ツール</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 12px;
+      background: #f5f5f5;
+    }
+
+    .container {
+      max-width: 520px;
+      margin: auto;
+      background: #fff;
+      padding: 16px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    h2 {
+      text-align: center;
+      margin-top: 0;
+    }
+
+    select,
+    input,
+    button {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      margin-top: 8px;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+    }
+
+    .time-input {
+      display: flex;
+      gap: 8px;
+    }
+
+    .time-input input {
+      flex: 1;
+      text-align: center;
+    }
+
+    button {
+      background: #4a90e2;
+      color: white;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #357abd;
+    }
+
+    .city {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #eee;
+    }
+
+    .name {
+      font-weight: bold;
+    }
+
+    .time {
+      text-align: right;
+    }
+
+    .day {
+      font-size: 0.75rem;
+      color: #e67e22;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h2>世界時差ツール</h2>
+
+    <select id="baseCity"></select>
+
+    <div class="time-input">
+      <input type="number" id="hour" placeholder="時" min="0" max="23">
+      <input type="number" id="minute" placeholder="分" min="0" max="59">
+    </div>
+
+    <button onclick="setNow()">現在時刻</button>
+
+    <div id="list"></div>
+    <div style="margin-top:20px; text-align:center;">
+        <a href="../" style="color:#00ff41; text-decoration:none; font-size:0.5rem;">
+            <- return
+        </a>
+    </div>
+  </div>
+
+  <script>
+    const cities = [
+      { name: "🇯🇵 東京", tz: "Asia/Tokyo" },
+      { name: "🇰🇷 ソウル", tz: "Asia/Seoul" },
+      { name: "🇨🇳 北京", tz: "Asia/Shanghai" },
+      { name: "🇹🇭 バンコク", tz: "Asia/Bangkok" },
+      { name: "🇮🇳 デリー", tz: "Asia/Kolkata" },
+      { name: "🇸🇬 シンガポール", tz: "Asia/Singapore" },
+      { name: "🇦🇪 ドバイ", tz: "Asia/Dubai" },
+      { name: "🇫🇷 パリ", tz: "Europe/Paris" },
+      { name: "🇬🇧 ロンドン", tz: "Europe/London" },
+      { name: "🇺🇸 ニューヨーク", tz: "America/New_York" },
+      { name: "🇺🇸 ロサンゼルス", tz: "America/Los_Angeles" },
+      { name: "🇺🇸 ホノルル", tz: "Pacific/Honolulu" },
+      { name: "🇦🇺 シドニー", tz: "Australia/Sydney" }
+    ];
+
+    const select = document.getElementById("baseCity");
+    const list = document.getElementById("list");
+    const hourInput = document.getElementById("hour");
+    const minInput = document.getElementById("minute");
+
+    // 都市リストの初期化
+    cities.forEach(c => {
+      const opt = document.createElement("option");
+      opt.value = c.tz;
+      opt.textContent = c.name;
+      if (c.tz === "Asia/Tokyo") opt.selected = true;
+      select.appendChild(opt);
+    });
+
+    function setNow() {
+      const now = new Date();
+      hourInput.value = now.getHours();
+      minInput.value = now.getMinutes();
+      update();
+    }
+
+    function update() {
+      const base = select.value;
+      const h = parseInt(hourInput.value) || 0;
+      const m = parseInt(minInput.value) || 0;
+
+      list.innerHTML = "";
+
+      cities.forEach(c => {
+        const now = new Date();
+
+        // 基準時刻の計算
+        const baseTime = new Date(now.toLocaleString("en-US", { timeZone: base }));
+        baseTime.setHours(h, m, 0);
+
+        // 各都市の時差計算
+        const targetNow = new Date(now.toLocaleString("en-US", { timeZone: c.tz }));
+        const baseNow = new Date(now.toLocaleString("en-US", { timeZone: base }));
+
+        const diff = targetNow - baseNow;
+        const target = new Date(baseTime.getTime() + diff);
+
+        // 日付の差異ラベル
+        const dayDiff = target.getDate() - baseTime.getDate();
+        let dayLabel = "";
+        if (dayDiff === 1) dayLabel = "(+1日)";
+        if (dayDiff === -1) dayLabel = "(-1日)";
+        if (dayDiff > 1) dayLabel = `(+${dayDiff}日)`;
+        if (dayDiff < -1) dayLabel = `(${dayDiff}日)`;
+
+        // 昼夜のアイコン
+        const hour = target.getHours();
+        const icon = (hour >= 6 && hour < 18) ? "☀️" : "🌙";
+
+        const row = document.createElement("div");
+        row.className = "city";
+        row.innerHTML = `
+          <div class="name">${c.name}</div>
+          <div class="time">
+            ${icon} ${target.toLocaleTimeString("ja-JP", { hour: '2-digit', minute: '2-digit' })}
+            <div class="day">${dayLabel}</div>
+          </div>
+        `;
+
+        list.appendChild(row);
+      });
+    }
+
+    select.addEventListener("change", update);
+    hourInput.addEventListener("input", update);
+    minInput.addEventListener("input", update);
+
+    // 初回実行
+    setNow();
+  </script>
+</body>
+</html>

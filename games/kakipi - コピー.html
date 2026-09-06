@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>積み上げ物理ゲーム</title>
+  <style>
+    body {
+      margin: 0;
+      background: #eee;
+      overflow: hidden;
+      touch-action: none;
+    }
+    #ui {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      pointer-events: none;
+      user-select: none;
+      min-width: 150px;
+    }
+    .score-label { font-size: 12px; color: #666; }
+    .score-value { font-size: 24px; font-weight: bold; color: #333; }
+  </style>
+</head>
+<body>
+
+<div id="ui">
+  <div class="score-label">現在の高さ</div>
+  <div id="current-score" class="score-value">0</div>
+  <div style="margin-top: 5px; font-size: 11px; color: #888;">クリックで落下</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/matter-js@0.19.0/build/matter.min.js"></script>
+
+<script>
+  const { Engine, Render, Runner, World, Bodies, Events, Composite, Body } = Matter;
+
+  let isGameOver = false;
+  let maxScore = 0;
+
+  const engine = Engine.create();
+  const world = engine.world;
+
+  const render = Render.create({
+    element: document.body,
+    engine: engine,
+    options: {
+      width: window.innerWidth,
+      height: window.innerHeight,
+      wireframes: false,
+      background: "#ffffff"
+    }
+  });
+
+  Render.run(render);
+  const runner = Runner.create();
+  Runner.run(runner, engine);
+
+  /* ===== 台の設置 ===== */
+  const platformY = 500;
+  const platform = Bodies.rectangle(
+    window.innerWidth / 2, platformY,
+    300, 20,
+    {
+      isStatic: true,
+      render: { fillStyle: "#333" },
+      label: "platform"
+    }
+  );
+  World.add(world, platform);
+
+  /* ===== 次のフルーツ ===== */
+  let nextItem = null;
+  let nextType = null;
+  let nextAngle = 0;
+
+  function createNextPreview(x) {
+    if (nextItem) {
+      World.remove(world, nextItem);
+    }
+
+    nextType = Math.random() < 0.5 ? 'kaki' : 'pi';
+    const texturePath = nextType === 'kaki'
+      ? "./kakipipng/kaki.png"
+      : "./kakipipng/pi.png";
+
+    nextAngle = (Math.random() - 0.5) * 0.6; // ランダム傾き
+
+    nextItem = Bodies.rectangle(
+      x, 50, 60, 60,
+      {
+        isStatic: true,
+        isSensor: true,
+        angle: nextAngle,
+        render: {
+          opacity: 0.6,
+          sprite: {
+            texture: texturePath,
+            xScale: 0.8,
+            yScale: 0.8
+          }
+        }
+      }
+    );
+
+    World.add(world, nextItem);
+  }
+
+  /* 初期プレビュー */
+  createNextPreview(window.innerWidth / 2);
+
+  /* マウス移動で追従 */
+  window.addEventListener("pointermove", (e) => {
+    if (nextItem) {
+      Body.setPosition(nextItem, { x: e.clientX, y: 50 });
+    }
+  });
+
+  /* ===== 落下処理 ===== */
+  function dropItem(x) {
+    if (isGameOver) return;
+
+    const texturePath = nextType === 'kaki'
+      ? "./kakipipng/kaki.png"
+      : "./kakipipng/pi.png";
+
+    const body = Bodies.rectangle(
+      x, 50, 60, 60,
+      {
+        restitution: 0.2,
+        friction: 0.8,
+        angle: nextAngle,
+        render: {
+          sprite: {
+            texture: texturePath,
+            xScale: 0.8,
+            yScale: 0.8
+          }
+        }
+      }
+    );
+
+    World.add(world, body);
+
+    createNextPreview(x);
+  }
+
+  window.addEventListener("pointerdown", (e) => {
+    dropItem(e.clientX);
+  });
+
+  /* ===== 判定 & スコア計算 ===== */
+  Events.on(engine, 'afterUpdate', () => {
+    if (isGameOver) return;
+
+    const allBodies = Composite.allBodies(world);
+    let highestY = platformY;
+
+    allBodies.forEach(body => {
+      if (body.label !== "platform" && body !== nextItem) {
+
+        if (body.position.y > window.innerHeight) {
+          gameOver();
+        }
+
+        if (body.bounds.min.y < highestY) {
+          highestY = body.bounds.min.y;
+        }
+      }
+    });
+
+    const currentScore = Math.max(0, Math.floor(platformY - highestY));
+    maxScore = currentScore;
+    document.getElementById("current-score").innerText = currentScore;
+  });
+
+  function gameOver() {
+    isGameOver = true;
+    Runner.stop(runner);
+
+    setTimeout(() => {
+      alert(`ゲームオーバー！\n今回の高さ（記録）: ${maxScore} 点`);
+      location.reload();
+    }, 100);
+  }
+
+  window.addEventListener('resize', () => {
+    render.canvas.width = window.innerWidth;
+    render.canvas.height = window.innerHeight;
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ねこスイカゲーム</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+
+<style>
+body { margin:0; overflow:hidden; background:#fff7e6; font-family:sans-serif; }
+canvas { display:block; }
+
+#score {
+    position:absolute;
+    top:10px; left:10px;
+    background:white;
+    padding:10px 20px;
+    border-radius:12px;
+    border:4px solid #f4a261;
+    font-weight:bold;
+}
+
+#nextBox {
+    position:absolute;
+    top:10px; right:10px;
+    text-align:center;
+}
+
+#nextBox div {
+    background:white;
+    border:4px solid #f4a261;
+    border-radius:12px;
+    width:80px; height:80px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+
+.overlay {
+    position:absolute;
+    width:100%; height:100%;
+    background:rgba(0,0,0,0.5);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+
+.hidden { display:none; }
+
+.modal {
+    background:white;
+    padding:30px;
+    border-radius:20px;
+    text-align:center;
+}
+
+button {
+    padding:10px 20px;
+    margin-top:10px;
+    font-size:16px;
+}
+
+.return-link {
+    margin-top: 15px;
+    text-align: center;
+}
+
+.return-link a {
+    color: #00aa66;
+    text-decoration: none;
+    font-size: 0.9rem;
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="score">SCORE: <span id="scoreVal">0</span></div>
+
+<div id="nextBox">
+    NEXT
+    <div><img id="nextImg" src="./nekoWatermelonGame/neko.png"></div>
+</div>
+
+<div id="start" class="overlay">
+    <div class="modal">
+        <h2>ねこスイカ</h2>
+        <button onclick="startGame()">スタート</button>
+        <div class="return-link"><a href="../">&lt;- return</a></div>
+    </div>
+</div>
+
+<div id="gameover" class="overlay hidden">
+    <div class="modal">
+        <h2>GAME OVER</h2>
+        <div id="finalScore"></div>
+        <button onclick="startGame()">もう一度</button>
+        <div class="return-link"><a href="../">&lt;- return</a></div>
+    </div>
+</div>
+
+<canvas id="c"></canvas>
+
+<script>
+const { Engine, Runner, Bodies, Composite, Events } = Matter;
+
+const neko = new Image();
+neko.src = "./nekoWatermelonGame/neko.png";
+
+// 🍉 サイズバランス（超重要）
+const FRUITS = [
+    { r:18, score:1 },
+    { r:26, score:3 },
+    { r:36, score:6 },
+    { r:50, score:12 },
+    { r:70, score:24 },
+    { r:95, score:48 },
+    { r:130, score:100 }
+];
+
+let engine = Engine.create();
+let runner = Runner.create();
+
+let canvas = document.getElementById("c");
+let ctx = canvas.getContext("2d");
+
+let w,h;
+function resize(){
+    w = innerWidth;
+    h = innerHeight;
+    canvas.width = w;
+    canvas.height = h;
+}
+resize();
+onresize = resize;
+
+let current=null, nextLv=0;
+let score=0;
+let mouseX=200;
+let canDrop=true;
+let playing=false;
+
+const boxW=350;
+const deadY=140;
+
+// 🔊 SE
+const ctxAudio = new (window.AudioContext || window.webkitAudioContext)();
+
+function playPop(){
+    const o = ctxAudio.createOscillator();
+    const g = ctxAudio.createGain();
+    o.connect(g); g.connect(ctxAudio.destination);
+
+    o.frequency.value = 300 + Math.random()*200;
+    g.gain.value = 0.2;
+
+    o.start();
+    g.gain.exponentialRampToValueAtTime(0.001, ctxAudio.currentTime+0.2);
+    o.stop(ctxAudio.currentTime+0.2);
+}
+
+// ゲーム開始
+function startGame(){
+    Composite.clear(engine.world);
+    score=0;
+    playing=true;
+    document.getElementById("scoreVal").innerText=0;
+    document.getElementById("start").classList.add("hidden");
+    document.getElementById("gameover").classList.add("hidden");
+
+    const cx=w/2, gy=h-50;
+
+    Composite.add(engine.world,[
+        Bodies.rectangle(cx,gy+50,boxW,100,{isStatic:true}),
+        Bodies.rectangle(cx-boxW/2-50,gy-200,100,600,{isStatic:true}),
+        Bodies.rectangle(cx+boxW/2+50,gy-200,100,600,{isStatic:true})
+    ]);
+
+    nextLv = Math.floor(Math.random()*3);
+    spawn();
+
+    Runner.run(runner, engine);
+}
+
+// 次生成
+function spawn(){
+    current = {lv:nextLv, ...FRUITS[nextLv]};
+    nextLv = Math.floor(Math.random()*3);
+
+    document.getElementById("nextImg").width = FRUITS[nextLv].r*1.2;
+}
+
+// 落とす
+canvas.onpointermove = e=>{
+    const left=(w-boxW)/2;
+    const right=(w+boxW)/2;
+    mouseX = Math.max(left+20, Math.min(right-20, e.clientX));
+};
+
+canvas.onpointerdown = ()=>{
+    if(!playing || !canDrop) return;
+
+    const offset = (Math.random()-0.5)*10;
+
+    const b = Bodies.circle(mouseX+offset, deadY, current.r,{
+        label:"f_"+current.lv,
+        restitution:0.05,
+        friction:0.9,
+        frictionAir:0.02,
+        inertia:Infinity
+    });
+
+    Composite.add(engine.world,b);
+
+    current=null;
+    canDrop=false;
+
+    setTimeout(()=>{
+        spawn();
+        canDrop=true;
+    },500);
+};
+
+// 合体
+Events.on(engine,"collisionStart", e=>{
+    e.pairs.forEach(p=>{
+        let a=p.bodyA, b=p.bodyB;
+
+        if(a.label===b.label && a.label.startsWith("f_")){
+            if(a.isMerging||b.isMerging) return;
+
+            a.isMerging=b.isMerging=true;
+
+            const lv=parseInt(a.label.split("_")[1]);
+            if(lv<FRUITS.length-1){
+
+                const x=(a.position.x+b.position.x)/2;
+                const y=(a.position.y+b.position.y)/2;
+
+                Composite.remove(engine.world,[a,b]);
+
+                const nb = Bodies.circle(x,y-5,FRUITS[lv+1].r,{
+                    label:"f_"+(lv+1),
+                    restitution:0.1,
+                    inertia:Infinity
+                });
+
+                Composite.add(engine.world,nb);
+
+                score+=FRUITS[lv+1].score;
+                document.getElementById("scoreVal").innerText=score;
+
+                playPop();
+            }
+        }
+    });
+});
+
+// 描画
+function draw(){
+    ctx.clearRect(0,0,w,h);
+
+    const left=(w-boxW)/2;
+    const right=(w+boxW)/2;
+    const bottom=h-50;
+
+    // 枠
+    ctx.fillStyle="#f4a261";
+    ctx.fillRect(left,bottom,boxW,20);
+    ctx.fillRect(left-10,bottom-400,10,400);
+    ctx.fillRect(right,bottom-400,10,400);
+
+    // デッドライン
+    ctx.setLineDash([5,5]);
+    ctx.beginPath();
+    ctx.moveTo(left,deadY);
+    ctx.lineTo(right,deadY);
+    ctx.strokeStyle="red";
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 物体
+    Composite.allBodies(engine.world).forEach(b=>{
+        if(b.isStatic) return;
+
+        let r=b.circleRadius;
+
+        ctx.drawImage(neko,
+            b.position.x-r,
+            b.position.y-r,
+            r*2,r*2
+        );
+    });
+
+    // 予測
+    if(current){
+        ctx.globalAlpha=0.5;
+        ctx.drawImage(neko,
+            mouseX-current.r,
+            deadY-current.r,
+            current.r*2,current.r*2
+        );
+        ctx.globalAlpha=1;
+    }
+
+    checkGameOver();
+    requestAnimationFrame(draw);
+}
+
+// ゲームオーバー
+function checkGameOver(){
+    if(!playing) return;
+
+    Composite.allBodies(engine.world).forEach(b=>{
+        if(b.isStatic) return;
+
+        if(b.position.y < deadY-20){
+            playing=false;
+            document.getElementById("finalScore").innerText=score;
+            document.getElementById("gameover").classList.remove("hidden");
+            Runner.stop(runner);
+        }
+    });
+}
+
+draw();
+</script>
+</body>
+</html>

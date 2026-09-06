@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>アナログ＋デジタル時計</title>
+
+<style>
+body {
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(135deg, #dfe9f3, #ffffff);
+    font-family: sans-serif;
+}
+
+.clock {
+    width: 70vmin;
+    height: 70vmin;
+    border: 1.2vmin solid #333;
+    border-radius: 50%;
+    position: relative;
+    background: white;
+    box-shadow:
+        0 1vmin 3vmin rgba(0,0,0,0.3),
+        inset 0 0.5vmin 1vmin rgba(0,0,0,0.2);
+}
+
+/* デジタル表示 */
+.digital {
+    margin-top: 3vmin;
+    font-size: 6vmin;
+    font-weight: bold;
+    letter-spacing: 0.5vmin;
+    color: #333;
+    text-shadow: 0 0.3vmin 0.5vmin rgba(0,0,0,0.2);
+}
+
+/* 数字 */
+.number {
+    position: absolute;
+    font-size: 3.5vmin;
+    font-weight: bold;
+    transform: translate(-50%, -50%);
+}
+
+/* 目盛り */
+.tick {
+    position: absolute;
+    width: 0.4vmin;
+    height: 2vmin;
+    background: #666;
+    top: 0;
+    left: 50%;
+    transform-origin: 50% 35vmin;
+}
+
+.tick.big {
+    height: 3.5vmin;
+    width: 0.7vmin;
+    background: #333;
+}
+
+/* 針 */
+.hand {
+    position: absolute;
+    bottom: 50%;
+    left: 50%;
+    transform-origin: bottom;
+    transform: translateX(-50%) rotate(0deg);
+    border-radius: 1vmin;
+}
+
+.hour { width: 1.6vmin; height: 22%; background: #333; }
+.minute { width: 1vmin; height: 32%; background: #555; }
+.second { width: 0.5vmin; height: 36%; background: #e53935; }
+
+.center {
+    position: absolute;
+    width: 2.2vmin;
+    height: 2.2vmin;
+    background: #333;
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 1vmin rgba(0,0,0,0.4);
+}
+</style>
+</head>
+
+<body>
+
+<div class="clock" id="clock">
+
+    <!-- 数字 -->
+    <div class="number" style="top:10%; left:50%;">12</div>
+    <div class="number" style="top:18%; left:75%;">1</div>
+    <div class="number" style="top:35%; left:90%;">2</div>
+    <div class="number" style="top:50%; left:95%;">3</div>
+    <div class="number" style="top:65%; left:90%;">4</div>
+    <div class="number" style="top:82%; left:75%;">5</div>
+    <div class="number" style="top:90%; left:50%;">6</div>
+    <div class="number" style="top:82%; left:25%;">7</div>
+    <div class="number" style="top:65%; left:10%;">8</div>
+    <div class="number" style="top:50%; left:5%;">9</div>
+    <div class="number" style="top:35%; left:10%;">10</div>
+    <div class="number" style="top:18%; left:25%;">11</div>
+
+    <div class="hand hour" id="hour"></div>
+    <div class="hand minute" id="minute"></div>
+    <div class="hand second" id="second"></div>
+
+    <div class="center"></div>
+</div>
+
+<div class="digital" id="digital">00:00:00</div>
+<div style="margin-top:20px; text-align:center;">
+    <a href="../" style="color:#00ff41; text-decoration:none; font-size:0.5rem;">
+        <- return
+    </a>
+</div>
+<script>
+// 目盛り生成
+const clock = document.getElementById("clock");
+
+for (let i = 0; i < 60; i++) {
+    const tick = document.createElement("div");
+    tick.className = "tick";
+    if (i % 5 === 0) tick.classList.add("big");
+    tick.style.transform = `rotate(${i * 6}deg)`;
+    clock.appendChild(tick);
+}
+
+// 時計更新
+function updateClock() {
+    const now = new Date();
+
+    const sec = now.getSeconds();
+    const min = now.getMinutes();
+    const hour = now.getHours();
+
+    const secDeg = sec * 6;
+    const minDeg = min * 6 + sec * 0.1;
+    const hourDeg = (hour % 12) * 30 + min * 0.5;
+
+    document.getElementById("second").style.transform =
+        `translateX(-50%) rotate(${secDeg}deg)`;
+    document.getElementById("minute").style.transform =
+        `translateX(-50%) rotate(${minDeg}deg)`;
+    document.getElementById("hour").style.transform =
+        `translateX(-50%) rotate(${hourDeg}deg)`;
+
+    // デジタル
+    const hh = String(hour).padStart(2,'0');
+    const mm = String(min).padStart(2,'0');
+    const ss = String(sec).padStart(2,'0');
+    document.getElementById("digital").textContent =
+        `${hh}:${mm}:${ss}`;
+}
+
+setInterval(updateClock, 1000);
+updateClock();
+</script>
+
+</body>
+</html>

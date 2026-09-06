@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>学歴年 自動計算</title>
+<style>
+  body { font-family: sans-serif; padding: 20px; background:#f5f5f5; }
+  .card { background:#fff; padding:20px; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.1); max-width:760px; margin:auto; }
+  input, button { padding:10px; font-size:16px; margin-top:10px; width:100%; }
+  table { width:100%; border-collapse: collapse; margin-top:20px; }
+  th, td { border:1px solid #ddd; padding:8px; text-align:center; }
+  th { background:#f0f0f0; }
+  .age { margin-top:10px; font-weight:bold; }
+  .row { margin-top:10px; }
+  .return-link { margin-top: 15px;text-align: center; }
+  .return-link a { color: #00aa66; text-decoration: none; font-size: 0.9rem; }
+</style>
+</head>
+<body>
+<div class="card">
+<h2>学歴年 自動計算ツール</h2>
+<p>生年月日を入力してください（例: 2000-04-15 / 平成12年4月15日）</p>
+<input type="text" id="birth" placeholder="生年月日を入力">
+
+<div class="row">
+<label>大学浪人年数</label>
+<input type="number" id="ronin" value="0" min="0">
+</div>
+
+<div class="row">
+<label>大学留年年数</label>
+<input type="number" id="repeat" value="0" min="0">
+</div>
+
+<button onclick="calc()">計算</button>
+<div id="age" class="age"></div>
+<div id="result"></div>
+</div>
+<div class="return-link">
+<a href="../">&lt;- return</a>
+</div>
+<script>
+function warekiToSeireki(text){
+  const eras = [
+    { name:'令和', start:2019 },
+    { name:'平成', start:1989 },
+    { name:'昭和', start:1926 },
+    { name:'大正', start:1912 },
+    { name:'明治', start:1868 }
+  ];
+  for(const era of eras){
+    if(text.includes(era.name)){
+      const match = text.match(/(\d+)年/);
+      if(match){
+        const year = parseInt(match[1]);
+        return era.start + year - 1;
+      }
+    }
+  }
+  return null;
+}
+
+function seirekiToWareki(year){
+  const eras = [
+    { name:'令和', start:2019 },
+    { name:'平成', start:1989 },
+    { name:'昭和', start:1926 },
+    { name:'大正', start:1912 },
+    { name:'明治', start:1868 }
+  ];
+  for(const era of eras){
+    if(year >= era.start){
+      return era.name + (year - era.start + 1) + '年';
+    }
+  }
+  return year + '年';
+}
+
+function parseDate(input){
+  input = input.trim();
+  let d = new Date(input);
+  if(!isNaN(d)) return d;
+
+  const year = warekiToSeireki(input);
+  if(year){
+    const m = input.match(/年(\d+)月/);
+    const d2 = input.match(/月(\d+)日/);
+    const month = m ? parseInt(m[1])-1 : 0;
+    const day = d2 ? parseInt(d2[1]) : 1;
+    return new Date(year, month, day);
+  }
+  return null;
+}
+
+function calcAge(birth){
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const m = today.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+    age--;
+  }
+  return age;
+}
+
+function calc(){
+  const input = document.getElementById('birth').value;
+  const birth = parseDate(input);
+
+  if(!birth){
+    alert('日付形式が正しくありません');
+    return;
+  }
+
+  const ronin = parseInt(document.getElementById('ronin').value) || 0;
+  const repeat = parseInt(document.getElementById('repeat').value) || 0;
+
+  document.getElementById('age').innerText = "現在の年齢: " + calcAge(birth) + "歳";
+
+  let year = birth.getFullYear();
+  let month = birth.getMonth() + 1;
+
+  if(month < 4 || (month === 4 && birth.getDate() === 1)){
+    year--;
+  }
+
+  const stages = [
+    {name:'小学校', start:6, length:6},
+    {name:'中学校', start:12, length:3},
+    {name:'高校', start:15, length:3},
+    {name:'高専', start:15, length:5},
+    {name:'高専→大学(3年次編入)', start:20 + ronin, length:2 + repeat},
+    {name:'専門学校(2年)/短大', start:18 + ronin, length:2 + repeat},
+    {name:'大学', start:18 + ronin, length:4 + repeat},
+    {name:'大学院(修士)', start:22 + ronin, length:2 + repeat},
+    {name:'大学院(博士)', start:24 + ronin, length:3 + repeat}
+  ];
+
+  let html = '<table>';
+  html += '<tr><th>区分</th><th>入学年</th><th>卒業年</th></tr>';
+
+  stages.forEach(s => {
+    const enter = year + s.start;
+    const grad = enter + s.length;
+
+    html += `<tr>
+      <td>${s.name}</td>
+      <td>${enter}年<br>(${seirekiToWareki(enter)})</td>
+      <td>${grad}年<br>(${seirekiToWareki(grad)})</td>
+    </tr>`;
+  });
+
+  html += '</table>';
+  document.getElementById('result').innerHTML = html;
+}
+</script>
+</body>
+</html>
+

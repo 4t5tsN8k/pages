@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>計算脳トレ！ターゲットナンバー</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #eef2f5;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 24px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            text-align: center;
+            width: 90%;
+            max-width: 440px;
+        }
+        h1 {
+            margin: 0 0 8px 0;
+            font-size: 22px;
+            color: #333;
+        }
+        .instructions {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 16px;
+        }
+        
+        /* 設定パネル */
+        .settings-panel {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        .setting-group {
+            margin-bottom: 12px;
+        }
+        .setting-group:last-child {
+            margin-bottom: 0;
+        }
+        .setting-label {
+            font-size: 13px;
+            font-weight: bold;
+            color: #495057;
+            margin-bottom: 6px;
+            display: block;
+        }
+        .segmented-control {
+            display: flex;
+            background-color: #e9ecef;
+            border-radius: 8px;
+            padding: 3px;
+        }
+        .segmented-btn {
+            flex: 1;
+            padding: 8px 4px;
+            font-size: 13px;
+            font-weight: bold;
+            border: none;
+            background: none;
+            border-radius: 6px;
+            cursor: pointer;
+            color: #6c757d;
+            transition: all 0.2s ease;
+        }
+        .segmented-btn.active {
+            background-color: #ffffff;
+            color: #2b6cb0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* ハイスコアボード */
+        .highscore-box {
+            background-color: #fffaf0;
+            border: 1px solid #feebc8;
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 16px;
+            font-size: 13px;
+            color: #744210;
+        }
+        .highscore-title {
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 16px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #444;
+        }
+        .target-box {
+            background-color: #2d3748;
+            color: #fff;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 20px;
+        }
+        .target-label {
+            font-size: 11px;
+            color: #a0aec0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .target-number {
+            font-size: 44px;
+            font-weight: bold;
+            line-height: 1.1;
+        }
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .option-btn {
+            padding: 16px 8px;
+            font-size: 20px;
+            font-weight: bold;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            background-color: #fff;
+            color: #2d3748;
+            cursor: pointer;
+            transition: all 0.1s ease;
+            touch-action: manipulation;
+        }
+        .option-btn:active {
+            transform: scale(0.96);
+            background-color: #edf2f7;
+        }
+
+        /* 結果表示パネル */
+        .result-panel {
+            background-color: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+        .result-score {
+            font-size: 28px;
+            font-weight: bold;
+            color: #2b6cb0;
+            margin-bottom: 12px;
+        }
+        .result-details {
+            display: flex;
+            justify-content: space-around;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .result-correct { color: #38a169; }
+        .result-wrong { color: #e53e3e; }
+        .new-record {
+            color: #d69e2e;
+            font-weight: bold;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+
+        .start-btn {
+            width: 100%;
+            padding: 16px;
+            font-size: 20px;
+            font-weight: bold;
+            background-color: #319795;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(49, 151, 149, 0.3);
+        }
+        .start-btn:active {
+            transform: scale(0.98);
+        }
+        .hidden {
+            display: none !important;
+        }
+        .return-link {
+            margin-top: 15px;
+            text-align: center;
+        }
+        .return-link a {
+            color: #00aa66;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>計算脳トレ！ターゲット</h1>
+    <p class="instructions">計算結果が<strong>目標の数字</strong>になる式を選んでください！</p>
+
+    <!-- ハイスコア表示 -->
+    <div id="highscore-display" class="highscore-box">
+        <div class="highscore-title">🏆 自己ベスト（初級）</div>
+        <div>ハイスコア: <span id="highscore-val">0</span> 点</div>
+    </div>
+
+    <!-- 設定パネル -->
+    <div id="settings" class="settings-panel">
+        <div class="setting-group">
+            <span class="setting-label">難易度</span>
+            <div class="segmented-control">
+                <button class="segmented-btn active" onclick="setDifficulty('easy', this)">初級</button>
+                <button class="segmented-btn" onclick="setDifficulty('medium', this)">中級</button>
+                <button class="segmented-btn" onclick="setDifficulty('hard', this)">上級</button>
+            </div>
+        </div>
+        <div class="setting-group">
+            <span class="setting-label">制限時間</span>
+            <div class="segmented-control">
+                <button class="segmented-btn" onclick="setTimeLimit(15, this)">15秒</button>
+                <button class="segmented-btn active" onclick="setTimeLimit(30, this)">30秒</button>
+                <button class="segmented-btn" onclick="setTimeLimit(60, this)">60秒</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 結果表示エリア -->
+    <div id="result-panel" class="result-panel hidden">
+        <div id="result-score" class="result-score">0点</div>
+        <div class="result-details">
+            <div class="result-correct">正解: <span id="correct-count">0</span>回</div>
+            <div class="result-wrong">間違い: <span id="wrong-count">0</span>回</div>
+        </div>
+        <div id="new-record-msg" class="new-record hidden">🎉 自己ベスト更新！</div>
+    </div>
+
+    <div class="stats">
+        <div>残り時間: <span id="time">30</span>s</div>
+        <div>スコア: <span id="score">0</span></div>
+    </div>
+
+    <div class="target-box">
+        <div class="target-label">Target</div>
+        <div id="target" class="target-number">?</div>
+    </div>
+
+    <button id="start-btn" class="start-btn" onclick="startGame()">スタート</button>
+
+    <div id="options" class="options-grid hidden">
+        <button class="option-btn" onclick="checkAnswer(0)"></button>
+        <button class="option-btn" onclick="checkAnswer(1)"></button>
+        <button class="option-btn" onclick="checkAnswer(2)"></button>
+        <button class="option-btn" onclick="checkAnswer(3)"></button>
+    </div>
+
+    <div class="return-link"><a href="../">&lt;- return</a></div>
+
+</div>
+
+<script>
+    let score = 0;
+    let correctCount = 0;
+    let wrongCount = 0;
+    let selectedTime = 30;
+    let timeLeft = 30;
+    let difficulty = 'easy';
+    let timer = null;
+    let correctAnswerIndex = -1;
+
+    const targetEl = document.getElementById('target');
+    const scoreEl = document.getElementById('score');
+    const timeEl = document.getElementById('time');
+    const startBtn = document.getElementById('start-btn');
+    const settingsEl = document.getElementById('settings');
+    const resultPanelEl = document.getElementById('result-panel');
+    const optionsEl = document.getElementById('options');
+    const optionBtns = document.querySelectorAll('.option-btn');
+    
+    const highscoreValEl = document.getElementById('highscore-val');
+    const highscoreDisplayEl = document.getElementById('highscore-display');
+
+    // 起動時にハイスコア読み込み
+    updateHighScoreDisplay();
+
+    function setDifficulty(diff, btn) {
+        difficulty = diff;
+        btn.parentElement.querySelectorAll('.segmented-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        updateHighScoreDisplay();
+    }
+
+    function setTimeLimit(seconds, btn) {
+        selectedTime = seconds;
+        timeEl.textContent = selectedTime;
+        btn.parentElement.querySelectorAll('.segmented-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+    }
+
+    // LocalStorageからハイスコアを取得・表示
+    function updateHighScoreDisplay() {
+        const diffNames = { easy: '初級', medium: '中級', hard: '上級' };
+        const key = `math_game_highscore_${difficulty}`;
+        const savedScore = localStorage.getItem(key) || 0;
+        
+        highscoreDisplayEl.querySelector('.highscore-title').textContent = `🏆 自己ベスト（${diffNames[difficulty]}）`;
+        highscoreValEl.textContent = savedScore;
+    }
+
+    function startGame() {
+        score = 0;
+        correctCount = 0;
+        wrongCount = 0;
+        timeLeft = selectedTime;
+        
+        scoreEl.textContent = score;
+        timeEl.textContent = timeLeft;
+
+        settingsEl.classList.add('hidden');
+        resultPanelEl.classList.add('hidden');
+        startBtn.classList.add('hidden');
+        optionsEl.classList.remove('hidden');
+
+        nextQuestion();
+
+        timer = setInterval(() => {
+            timeLeft--;
+            timeEl.textContent = timeLeft;
+            if (timeLeft <= 0) {
+                endGame();
+            }
+        }, 1000);
+    }
+
+    function getRandomInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function generateExpression() {
+        if (difficulty === 'easy') {
+            const op = Math.random() < 0.5 ? '+' : '-';
+            if (op === '+') {
+                const a = getRandomInt(1, 15);
+                const b = getRandomInt(1, 15);
+                return { text: `${a} + ${b}`, val: a + b };
+            } else {
+                const a = getRandomInt(5, 20);
+                const b = getRandomInt(1, a - 1);
+                return { text: `${a} - ${b}`, val: a - b };
+            }
+        } else if (difficulty === 'medium') {
+            const ops = ['+', '-', '×', '÷'];
+            const op = ops[getRandomInt(0, 3)];
+            if (op === '+') {
+                const a = getRandomInt(5, 30);
+                const b = getRandomInt(5, 30);
+                return { text: `${a} + ${b}`, val: a + b };
+            } else if (op === '-') {
+                const a = getRandomInt(10, 40);
+                const b = getRandomInt(1, a - 1);
+                return { text: `${a} - ${b}`, val: a - b };
+            } else if (op === '×') {
+                const a = getRandomInt(2, 9);
+                const b = getRandomInt(2, 9);
+                return { text: `${a} × ${b}`, val: a * b };
+            } else {
+                const b = getRandomInt(2, 9);
+                const val = getRandomInt(2, 10);
+                const a = b * val;
+                return { text: `${a} ÷ ${b}`, val: val };
+            }
+        } else {
+            const pattern = getRandomInt(1, 3);
+            if (pattern === 1) {
+                const a = getRandomInt(2, 15);
+                const b = getRandomInt(2, 15);
+                const c = getRandomInt(2, 15);
+                return { text: `${a} + ${b} + ${c}`, val: a + b + c };
+            } else if (pattern === 2) {
+                const a = getRandomInt(2, 20);
+                const b = getRandomInt(2, 5);
+                const c = getRandomInt(2, 5);
+                return { text: `${a} + ${b} × ${c}`, val: a + (b * c) };
+            } else {
+                const a = getRandomInt(3, 8);
+                const b = getRandomInt(3, 8);
+                const c = getRandomInt(1, (a * b) - 1);
+                return { text: `${a} × ${b} - ${c}`, val: (a * b) - c };
+            }
+        }
+    }
+
+    function nextQuestion() {
+        const choices = [];
+        const usedValues = new Set();
+
+        const correctExpr = generateExpression();
+        const targetValue = correctExpr.val;
+        choices.push(correctExpr);
+        usedValues.add(targetValue);
+
+        while (choices.length < 4) {
+            const dummyExpr = generateExpression();
+            if (!usedValues.has(dummyExpr.val)) {
+                usedValues.add(dummyExpr.val);
+                choices.push(dummyExpr);
+            }
+        }
+
+        for (let i = choices.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [choices[i], choices[j]] = [choices[j], choices[i]];
+        }
+
+        correctAnswerIndex = choices.findIndex(c => c.val === targetValue);
+
+        targetEl.textContent = targetValue;
+        optionBtns.forEach((btn, index) => {
+            btn.textContent = choices[index].text;
+        });
+    }
+
+    function checkAnswer(selectedIndex) {
+        if (selectedIndex === correctAnswerIndex) {
+            const bonus = difficulty === 'easy' ? 10 : (difficulty === 'medium' ? 15 : 20);
+            score += bonus;
+            correctCount++;
+        } else {
+            score = Math.max(0, score - 5);
+            wrongCount++;
+        }
+        scoreEl.textContent = score;
+        nextQuestion();
+    }
+
+    function endGame() {
+        clearInterval(timer);
+        targetEl.textContent = 'FINISH!';
+        optionsEl.classList.add('hidden');
+        
+        // ハイスコア判定と保存
+        const key = `math_game_highscore_${difficulty}`;
+        const currentHighScore = parseInt(localStorage.getItem(key) || '0', 10);
+        const newRecordMsg = document.getElementById('new-record-msg');
+
+        if (score > currentHighScore) {
+            localStorage.setItem(key, score);
+            newRecordMsg.classList.remove('hidden');
+        } else {
+            newRecordMsg.classList.add('hidden');
+        }
+        
+        // ハイスコア表示を更新
+        updateHighScoreDisplay();
+
+        // 結果UIのセット
+        document.getElementById('result-score').textContent = `${score} 点`;
+        document.getElementById('correct-count').textContent = correctCount;
+        document.getElementById('wrong-count').textContent = wrongCount;
+
+        // UI切り替え
+        resultPanelEl.classList.remove('hidden');
+        settingsEl.classList.remove('hidden');
+        startBtn.classList.remove('hidden');
+        startBtn.textContent = 'もう一度プレイ';
+    }
+</script>
+
+</body>
+</html>

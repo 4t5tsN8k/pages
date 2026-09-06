@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>面積比較：メルカトル図法 vs イコールアース図法</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif;
+            background-color: #f0f4f8;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            /* ダブルクリック時のテキスト選択を防ぐ */
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        h1 {
+            color: #2c3e50;
+            font-size: 22px;
+            margin-bottom: 5px;
+        }
+        p.instruction {
+            color: #555;
+            font-size: 14px;
+            margin-bottom: 15px;
+            background-color: #fff;
+            padding: 10px 20px;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        #map-container {
+            background-color: #fff;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+            width: 100%;
+            max-width: 1000px;
+            cursor: crosshair;
+        }
+        svg {
+            width: 100%;
+            height: auto;
+        }
+        .country {
+            fill: #d1d8e0;
+            stroke: #ffffff;
+            stroke-width: 0.5px;
+            transition: fill 0.2s;
+        }
+        .country:hover {
+            fill: #a5b1c2;
+        }
+        /* ドラッグ中の国のスタイル */
+        .floating-country {
+            fill: rgba(255, 165, 0, 0.7); /* 薄いオレンジで半透明 */
+            stroke: #ff9f43;
+            stroke-width: 1.5px;
+            /* マウスイベントを貫通させ、背後のマップをクリックできるようにする */
+            pointer-events: none; 
+        }
+    </style>
+</head>
+<body>
+
+    <h1>面積比較：メルカトル図法 vs イコールアース図法</h1>
+    <p class="instruction">
+        <strong>操作方法:</strong> メルカトル図法（背景の地図）の国を<b>ダブルクリック</b>すると、正しい面積比（イコールアース図法）のサイズになってマウスに追従します。<br>
+        他の国に重ねて実際の大きさを比較してみてください。<b>再度ダブルクリック</b>すると離します。
+    </p>
+
+    <div id="map-container"></div>
+    <div style="margin-top:20px; text-align:center;">
+        <a href="../" style="color:#00ff41; text-decoration:none; font-size:0.8rem;">
+            <- return
+        </a>
+    </div>
+
+    <script>
+        const width = 1000;
+        const height = 650;
+        
+        const svg = d3.select("#map-container")
+            .append("svg")
+            .attr("viewBox", `0 0 ${width} ${height}`);
+
+        // 海（背景）用の透明な矩形（海をダブルクリックした時の判定用）
+        svg.append("rect")
+            .attr("width", width)
+            .attr("height", height)
+            .attr("fill", "transparent");
+
+        // --- 投影法の設定 ---
+        // 比較のために「地球の基本サイズ（スケール）」を全く同じに設定します
+        const sharedScale = 140;
+        const sharedTranslate = [width / 2, height / 2 + 50];
+
+        // 背景に描画するメルカトル図法（高緯度ほど面積が拡大される）
+        const mercatorProj = d3.geoMercator()
+            .scale(sharedScale)
+            .translate(sharedTranslate);
+        const mercatorPath = d3.geoPath().projection(mercatorProj);
+
+        // 切り取った際に適用するイコールアース図法（実際の面積比を保つ）
+        const equalEarthProj = d3.geoEqualEarth()
+            .scale(sharedScale)
+            .translate(sharedTranslate);
+        const equalEarthPath = d3.geoPath().projection(equalEarthProj);
+
+        // --- 状態管理 ---
+        let floatingElement = null; // 現在マウスに追従しているSVG要素
+        let dragCentroid = [0, 0];  // ドラッグ中の図形の重心オフセット
+
+        const geojsonUrl = "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson";
+
+        d3.json(geojsonUrl).then(function(data) {
+            
+            // 背景のメルカトル図法マップを描画
+            svg.selectAll(".country")
+                .data(data.features)
+                .enter()
+                .append("path")
+                .attr("class", "country")
+                .attr("d", mercatorPath);
+
+            // --- インタラクション処理 ---
+            
+            // マウス移動時：図形が選択されていれば追従させる
+            svg.on("mousemove", function(event) {
+                if (floatingElement) {
+                    const [mx, my] = d3.pointer(event, svg.node());
+                    // 重心がマウスカーソルの位置にくるように座標を調整
+                    floatingElement.attr("transform", `translate(${mx - dragCentroid[0]}, ${my - dragCentroid[1]})`);
+                }
+            });
+
+            // ダブルクリック時：図形の切り取り・解放処理
+            // （SVG全体でイベントをリッスンし、対象が国か背景かで処理を分ける）
+            svg.on("dblclick", function(event) {
+                // 1. すでに図形をドラッグしている場合は「離す」処理
+                if (floatingElement) {
+                    floatingElement.remove();
+                    floatingElement = null;
+                    return;
+                }
+
+                // 2. 新しく国を掴む処理
+                // イベントの発生源が国のパス（.country）であるか確認
+                const target = event.target;
+                if (!target || !target.classList.contains("country")) return;
+
+                // クリックされた国のGeoJSONデータを取得
+                const feature = d3.select(target).datum();
+
+                // イコールアース図法でのパス（d属性）と重心を計算
+                const eqPathString = equalEarthPath(feature);
+                let centroid = equalEarthPath.centroid(feature);
+                
+                // 極小の島などで重心が計算できない場合の安全対策
+                if (isNaN(centroid[0]) || isNaN(centroid[1])) {
+                    centroid = [0, 0];
+                }
+                dragCentroid = centroid;
+
+                // 掴んだ国をSVGの最後（最前面）に描画
+                floatingElement = svg.append("path")
+                    .attr("class", "floating-country")
+                    .attr("d", eqPathString);
+
+                // 初期のマウス位置へ即座に移動
+                const [mx, my] = d3.pointer(event, svg.node());
+                floatingElement.attr("transform", `translate(${mx - dragCentroid[0]}, ${my - dragCentroid[1]})`);
+            });
+        });
+    </script>
+</body>
+</html>

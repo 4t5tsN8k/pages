@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Progress Bar Clock</title>
+
+<style>
+body {
+    background-color: #f4f7f6;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    padding: 15px;
+}
+
+.container {
+    background: white;
+    padding: clamp(20px, 5vw, 40px);
+    border-radius: 20px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+    width: 100%;
+    max-width: 420px;
+}
+
+h2 {
+    margin-bottom: clamp(20px, 5vw, 30px);
+    color: #333;
+    font-weight: 600;
+    text-align: center;
+    font-size: clamp(1.2rem, 5vw, 1.6rem);
+}
+
+.progress-group {
+    margin-bottom: clamp(18px, 4vw, 25px);
+}
+
+.label-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: clamp(0.8rem, 3.5vw, 0.95rem);
+    color: #666;
+}
+
+/* プログレスバーの土台 */
+.progress-bg {
+    background-color: #eee;
+    height: clamp(10px, 3vw, 14px);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+/* 動くバーの部分 */
+.progress-bar {
+    height: 100%;
+    width: 0%;
+    transition: width 0.1s linear;
+}
+
+/* 色分け */
+#day-bar { background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); }
+#hour-bar { background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); }
+#min-bar { background: linear-gradient(90deg, #f093fb 0%, #f5576c 100%); }
+
+#digital-clock {
+    text-align: center;
+    font-size: clamp(1.3rem, 6vw, 1.6rem);
+    font-weight: bold;
+    color: #444;
+    margin-top: clamp(15px, 4vw, 25px);
+    letter-spacing: 1px;
+}
+
+/* 小型スマホ最適化 */
+@media (max-width: 380px) {
+    .container {
+        padding: 18px;
+    }
+    
+    .label-row {
+        flex-direction: column;
+        gap: 2px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+    <h2>Time Progress</h2>
+
+    <div class="progress-group">
+        <div class="label-row">
+            <span>Today</span>
+            <span id="day-percent">0%</span>
+        </div>
+        <div class="progress-bg">
+            <div id="day-bar" class="progress-bar"></div>
+        </div>
+    </div>
+
+    <div class="progress-group">
+        <div class="label-row">
+            <span>This Hour</span>
+            <span id="hour-percent">0%</span>
+        </div>
+        <div class="progress-bg">
+            <div id="hour-bar" class="progress-bar"></div>
+        </div>
+    </div>
+
+    <div class="progress-group">
+        <div class="label-row">
+            <span>This Minute</span>
+            <span id="min-percent">0%</span>
+        </div>
+        <div class="progress-bg">
+            <div id="min-bar" class="progress-bar"></div>
+        </div>
+    </div>
+
+    <div id="digital-clock">00:00:00</div>
+    <div style="margin-top:20px; text-align:center;">
+        <a href="../" style="color:#00ff41; text-decoration:none; font-size:0.5rem;">
+            <- return
+        </a>
+    </div>
+
+</div>
+
+<script>
+function updateProgress() {
+    const now = new Date();
+    const h = now.getHours();
+    const m = now.getMinutes();
+    const s = now.getSeconds();
+    const ms = now.getMilliseconds();
+
+    const minP = ((s + ms / 1000) / 60) * 100;
+    const hourP = ((m + s / 60) / 60) * 100;
+    const dayP = ((h + m / 60) / 24) * 100;
+
+    updateUI('day', dayP);
+    updateUI('hour', hourP);
+    updateUI('min', minP);
+
+    document.getElementById('digital-clock').innerText =
+        `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+}
+
+function updateUI(id, percent) {
+    document.getElementById(`${id}-bar`).style.width = percent + '%';
+    document.getElementById(`${id}-percent`).innerText = Math.floor(percent) + '%';
+}
+
+setInterval(updateProgress, 50);
+updateProgress();
+</script>
+
+</body>
+</html>

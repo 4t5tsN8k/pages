@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>カロリー換算</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #f2f2f7;
+}
+
+.container {
+    padding: 20px;
+    max-width: 480px;
+    margin: auto;
+}
+
+.card {
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+h2 {
+    margin-top: 0;
+    font-size: 22px;
+}
+
+input {
+    width: 100%;
+    padding: 14px;
+    margin-top: 12px;
+    font-size: 18px;
+    border-radius: 10px;
+    border: 1px solid #ddd;
+}
+
+button {
+    width: 100%;
+    padding: 16px;
+    margin-top: 16px;
+    font-size: 18px;
+    border-radius: 12px;
+    border: none;
+    background: #007aff;
+    color: white;
+    font-weight: bold;
+}
+
+button:active {
+    opacity: 0.8;
+}
+
+.result {
+    margin-top: 20px;
+    font-size: 18px;
+    line-height: 1.8;
+}
+
+.highlight {
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.footer {
+    font-size: 12px;
+    color: gray;
+    margin-top: 15px;
+}
+
+.return-link {
+    margin-top: 15px;
+    text-align: center;
+}
+
+.return-link a {
+    color: #00aa66;
+    text-decoration: none;
+    font-size: 0.9rem;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+</style>
+</head>
+
+<body>
+<div class="container">
+<div class="card">
+
+<h2>🔥 カロリー換算</h2>
+
+カロリー (kcal)<input type="number" id="calories" placeholder="カロリー (kcal)" inputmode="numeric" value="100">
+体重 (kg)<input type="number" id="weight" placeholder="体重 (kg)" inputmode="numeric" value="60">
+
+<button onclick="convert()">換算する</button>
+
+<div class="result" id="result"></div>
+<div class="footer">※目安値（体格・強度で変動）</div>
+
+</div>
+<div class="return-link">
+<a href="../">&lt;- return</a>
+</div>
+</div>
+
+<script>
+function convert() {
+    const cal = parseFloat(document.getElementById("calories").value);
+    const weight = parseFloat(document.getElementById("weight").value);
+    const resultDiv = document.getElementById("result");
+
+    if (!cal || !weight) {
+        resultDiv.innerHTML = "入力してください";
+        return;
+    }
+
+    const METS = {
+        run: 8.0,
+        squat: 5.0,
+        pushup: 8.0,
+        plank: 3.5,
+        sex: 5.0
+    };
+
+    const run_km = (cal / (METS.run * weight) * 8).toFixed(2);
+    const squat_reps = Math.floor((cal / (METS.squat * weight)) * 60 * 20);
+    const pushup_reps = Math.floor((cal / (METS.pushup * weight)) * 60 * 15);
+    const plank_min = (cal / (METS.plank * weight) * 60).toFixed(1);
+    const sex_min = (cal / (METS.sex * weight) * 60).toFixed(1);
+    const sugar = (cal / 16).toFixed(1);
+
+    resultDiv.innerHTML = `
+        <div class="highlight">🍬 ${sugar} 個分</div>
+        🏃 ${run_km} km 走る<br>
+        🦵 スクワット ${squat_reps} 回<br>
+        💪 腕立て ${pushup_reps} 回<br>
+        🧘 プランク ${plank_min} 分<br>
+        ❤️ 有酸素活動 ${sex_min} 分
+    `;
+}
+</script>
+
+</body>
+</html>

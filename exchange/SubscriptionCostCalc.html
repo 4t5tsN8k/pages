@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>サブスク コスト計算</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 12px;
+      background: #f5f5f5;
+    }
+
+    .container {
+      max-width: 520px;
+      margin: auto;
+      background: #fff;
+      padding: 16px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    h2 {
+      text-align: center;
+      margin-top: 0;
+    }
+
+    input,
+    button {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      margin-top: 8px;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+    }
+
+    button {
+      background: #4a90e2;
+      color: white;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #357abd;
+    }
+
+    .result {
+      margin-top: 15px;
+      line-height: 1.8;
+      background: #f9f9f9;
+      padding: 10px;
+      border-radius: 8px;
+    }
+
+    .history {
+      margin-top: 20px;
+    }
+
+    .history-item {
+      background: #fafafa;
+      padding: 10px;
+      border-radius: 8px;
+      margin-top: 8px;
+      font-size: 14px;
+      border-left: 4px solid #4a90e2;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h2>サブスクコスト計算</h2>
+
+    <label for="initial">初期費用</label>
+    <input type="number" id="initial" placeholder="初期費用 (円)">
+
+    <label for="monthly">月額</label>
+    <input type="number" id="monthly" placeholder="月額 (円)">
+
+    <label for="accounts">アカウント数</label>
+    <input type="number" id="accounts" placeholder="アカウント数" value="1">
+
+    <label for="yearly">年更新料</label>
+    <input type="number" id="yearly" placeholder="年更新料 (円)">
+
+    <button onclick="calc()">計算する</button>
+
+    <div class="result" id="result"></div>
+
+    <div class="history">
+      <h3>履歴</h3>
+      <div id="history"></div>
+    </div>
+    <div style="margin-top:20px; text-align:center;">
+        <a href="../" style="color:#00ff41; text-decoration:none; font-size:0.5rem;">
+            <- return
+        </a>
+    </div>
+  </div>
+
+  <script>
+    let histories = [];
+
+    const initialInput = document.getElementById("initial");
+    const monthlyInput = document.getElementById("monthly");
+    const accountsInput = document.getElementById("accounts");
+    const yearlyInput = document.getElementById("yearly");
+
+    function calc() {
+      const initial = parseFloat(initialInput.value) || 0;
+      const monthly = parseFloat(monthlyInput.value) || 0;
+      const accounts = parseFloat(accountsInput.value) || 1;
+      const yearly = parseFloat(yearlyInput.value) || 0;
+
+      let html = "";
+      let total = initial;
+
+      // 5年間のシミュレーション
+      for (let year = 1; year <= 5; year++) {
+        total += (monthly * accounts) * 12;
+        total += yearly;
+        html += `<strong>${year}年後:</strong> ${total.toLocaleString()} 円<br>`;
+      }
+
+      document.getElementById("result").innerHTML = html;
+
+      // 履歴の作成
+      const record = `初期:${initial.toLocaleString()}円 | 月:${monthly.toLocaleString()}円 × ${accounts} | 年更新:${yearly.toLocaleString()}円 → 5年合計: ${total.toLocaleString()}円`;
+
+      histories.unshift(record);
+      if (histories.length > 5) {
+        histories.pop();
+      }
+
+      renderHistory();
+    }
+
+    function renderHistory() {
+      const historyDiv = document.getElementById("history");
+      historyDiv.innerHTML = "";
+
+      histories.forEach(h => {
+        const div = document.createElement("div");
+        div.className = "history-item";
+        div.textContent = h;
+        historyDiv.appendChild(div);
+      });
+    }
+  </script>
+</body>
+</html>
