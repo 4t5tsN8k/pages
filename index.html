@@ -1,0 +1,146 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ツール一覧</title>
+    <style>
+        :root {
+            --bg-color: #f4f7f9;
+            --card-bg: #ffffff;
+            --text-color: #333;
+            --accent-color: #007aff; /* iOS風のブルー */
+            --spacing: 12px;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 1.5rem;
+            margin-bottom: 25px;
+            color: #444;
+        }
+
+        /* リスト全体のスタイル */
+        ul {
+            list-style: none;
+            padding: 0;
+            max-width: 500px; /* PCで見ても広がりすぎないように */
+            margin: 0 auto;
+        }
+
+        /* 各アイテムの枠組み */
+        li {
+            margin-bottom: 10px;
+        }
+
+        /* リンクを「押しやすいボタン」に変える */
+        li a {
+            display: block;
+            background-color: var(--card-bg);
+            padding: 15px 20px;
+            text-decoration: none;
+            color: var(--text-color);
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            transition: transform 0.1s, background-color 0.2s;
+            border: 1px solid #eee;
+            font-weight: 500;
+        }
+
+        /* タップした時の反応 */
+        li a:active {
+            transform: scale(0.98);
+            background-color: #ebebeb;
+        }
+
+        /* 元のHTMLにあった空のli（隙間）をデザイン的に処理 */
+        li:empty, li:has(> b:empty) {
+            height: 20px;
+            pointer-events: none;
+        }
+        
+        /* カテゴリ分け（もし必要なら） */
+        .category-title {
+            font-size: 0.9rem;
+            color: #888;
+            margin: 20px 0 10px 5px;
+            font-weight: bold;
+        }
+
+        /* 特殊なリンク（干し芋など）の色を変える */
+        .wishlist {
+            background-color: #fff3e0 !important;
+            border-color: #ffe0b2 !important;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>ツール一覧</h1>
+
+    <ul>
+        <div class="category-title">CLOCK & STOPWATCH</div>
+        <li><a href="./clock/AnalogClock.html">アナログ時計</a></li>
+        <li><a href="./clock/AnalogDigitalClock.html">アナログ時計デジタル併記</a></li>
+        <li><a href="./clock/DigitalClock.html">デジタル時計</a></li>
+        <li><a href="./clock/BinaryClock.html">バイナリー時計</a></li>
+        <li><a href="./clock/ProgressBarClock.html">プログレッシブバー時計</a></li>
+        <li><a href="./clock/worldclock_EqualEarth.html">イコールアース図法世界時計</a></li>
+        
+        <div class="category-title">TIMER</div>
+        <li><a href="./clock/stopwatch.html">ストップウォッチ</a></li>
+        <li><a href="./clock/stopwatch_laptime.html">ラップタイムストップウォッチ</a></li>
+        <li><a href="./pomodoro/pomodoro.html">ポモドーロタイマー</a></li>
+        <li><a href="./pomodoro/BinaryPomodoroTimer.html">バイナリーポモドーロタイマー</a></li>
+        <li><a href="./pomodoro/BinaryPomodoroTimer2.html">バイナリーポモドーロタイマー 2</a></li>
+        
+        <div class="category-title">CONVERSION & CALC</div>
+        <li><a href="./exchange/exchangerate.html">リアルタイム為替変換</a></li>
+        <li><a href="./exchange/AreaConversions.html">面積を畳やテニスコートに変換</a></li>
+        <li><a href="./exchange/shakkanho_converter.html">尺貫法 単位変換ツール</a></li>
+        <li><a href="./exchange/calorie_conv.html">カロリーを運動量に変換</a></li>
+        <li><a href="./exchange/speed_cmptool.html">速さ比較ツール</a></li>
+        <li><a href="./exchange/weight_cmptool.html">重さ比較ツール</a></li>
+        <li><a href="./exchange/height_cmptool.html">高さ比較ツール</a></li>
+        <li><a href="./exchange/ResumeFraud.html">学歴の計算</a></li>
+        <li><a href="./exchange/SubscriptionCostCalc.html">サブスクコスト計算</a></li>
+        <li><a href="./exchange/TimeDifference.html">世界時差ツール</a></li>
+        <li><a href="./exchange/cash_runway.html">残金であと何か月暮らせるか</a></li>
+        <li><a href="./exchange/life_countdown.html">人生の残り時間チェッカー</a></li>
+        <li><a href="./exchange/teiji_calc.html">定時退社できるか計算ツール</a></li>
+        
+        <div class="category-title">GAMES</div>
+        <li><a href="./games/nekoWatermelonGame2.html">ねこスイカDX</a></li>
+        <li><a href="./games/nekoWatermelonGame.html">ねこスイカゲーム</a></li>
+        <li><a href="./games/kakipi.html">柿の種を積み上げるゲーム</a></li>
+        <li><a href="./games/BalanceStackingGame.html">バランス積み物理ゲーム</a></li>
+        <li><a href="./games/FakeWatermelonGame.html">スイカゲームっぽいゲーム</a></li>
+        <li><a href="./games/stroopgame.html.html">脳トレ 文字の色</a></li>
+        <li><a href="./games/mathgame.html">脳トレ 計算</a></li>
+
+        <div class="category-title">GAMES(PC)</div>
+        <li><a href="./games/typegame.html">ショートカットキー学習タイピングゲーム</a></li>
+
+        <div class="category-title">GAMES(IE only)</div>
+        <li><a href="./games/minesweeper.hta">マインスイーパー(hta)</a></li>
+        <li><a href="./games/tetris.hta">テトリス(hta)</a></li>
+
+        <div class="category-title">note</div>
+        <li><a href="https://note.com/mahalo_">note</a></li>
+
+        <div class="category-title">OTHERS</div>
+        <li><a href="https://www.amazon.jp/hz/wishlist/ls/9LXVCCBXD9M9?ref_=wl_share" class="wishlist">🎁 干し芋のリスト</a></li>
+    </ul>
+
+</body>
+</html>
