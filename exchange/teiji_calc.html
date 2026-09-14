@@ -131,7 +131,6 @@
 				const isEditing = editingId === t.id;
 				const div = document.createElement('div');
 				div.className = `p-3 rounded-xl border flex flex-col gap-3 ${t.completed ? 'bg-slate-100 opacity-60' : 'bg-white shadow-sm'}`;
-				
 				if (isEditing) {
 					div.innerHTML = `
 						<input type="text" id="editName" value="${escapeHTML(t.name)}" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
@@ -143,6 +142,10 @@
 								${createOptions(t.minutes, 55, false)}
 							</select>
 						</div>
+						<label class="flex items-center gap-2 text-sm text-slate-700">
+							<input type="checkbox" id="editRoutine" ${t.isRoutine ? 'checked' : ''} class="w-4 h-4 text-indigo-600 rounded">
+							ルーチンにする
+						</label>
 						<div class="flex justify-end gap-2 pt-1">
 							<button onclick="cancelEdit()" class="bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-medium">キャンセル</button>
 							<button onclick="saveTask(${t.id})" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded-lg text-xs font-medium">保存</button>
@@ -230,9 +233,13 @@
 		window.cancelEdit = () => { editingId = null; updateUI(); };
 		window.saveTask = (id) => {
 			const t = tasks.find(t => t.id === id);
+			if (!t) return;
+		
 			t.name = document.getElementById('editName').value.trim();
 			t.hours = parseInt(document.getElementById('editHours').value);
 			t.minutes = parseInt(document.getElementById('editMinutes').value);
+			t.isRoutine = document.getElementById('editRoutine')?.checked ?? t.isRoutine;
+		
 			editingId = null;
 			updateUI();
 		};
