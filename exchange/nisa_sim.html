@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>インデックス投資 複利・取り崩しシミュレーター</title>
+	<!-- Tailwind CSS CDN -->
+	<script src="https://cdn.tailwindcss.com"></script>
+	<!-- Chart.js CDN -->
+	<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+	<style>
+		@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700;800&display=swap');
+		body {
+			font-family: 'Inter', 'Noto Sans JP', sans-serif;
+			background-color: #f1f5f9;
+		}
+		
+		/* カスタムスライダーのスタイリング */
+		input[type=range] {
+			-webkit-appearance: none;
+			width: 100%;
+			background: transparent;
+		}
+		input[type=range]:focus {
+			outline: none;
+		}
+		input[type=range]::-webkit-slider-runnable-track {
+			width: 100%;
+			height: 8px;
+			cursor: pointer;
+			background: #e2e8f0;
+			border-radius: 9999px;
+			transition: background 0.2s;
+		}
+		input[type=range]::-webkit-slider-thumb {
+			height: 20px;
+			width: 20px;
+			border-radius: 50%;
+			background: #2563eb;
+			cursor: pointer;
+			-webkit-appearance: none;
+			margin-top: -6px;
+			box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+			transition: transform 0.1s, background-color 0.2s;
+		}
+		input[type=range]::-webkit-slider-thumb:hover {
+			transform: scale(1.15);
+			background: #1d4ed8;
+		}
+		input[type=range]:disabled::-webkit-slider-runnable-track {
+			background: #f1f5f9;
+			cursor: not-allowed;
+		}
+		input[type=range]:disabled::-webkit-slider-thumb {
+			background: #cbd5e1;
+			cursor: not-allowed;
+			box-shadow: none;
+			transform: none;
+		}
+
+		/* 取り崩しイベント用ピンクスライダー */
+		.range-rose::-webkit-slider-thumb {
+			background: #f43f5e !important;
+		}
+		.range-rose::-webkit-slider-thumb:hover {
+			background: #e11d48 !important;
+		}
+
+		/* スクロールバーの美化 */
+		::-webkit-scrollbar {
+			width: 8px;
+			height: 8px;
+		}
+		::-webkit-scrollbar-track {
+			background: #f1f5f9;
+		}
+		::-webkit-scrollbar-thumb {
+			background: #cbd5e1;
+			border-radius: 4px;
+		}
+	</style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen pb-12">
+
+	<div class="max-w-5xl mx-auto px-4 py-6 md:py-10 space-y-8">
+		
+		<header class="text-center space-y-2">
+			<h1 class="text-2xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
+				インデックス投資 複利・取り崩しシミュレーター
+			</h1>
+			<p class="text-slate-500 text-sm md:text-base max-w-2xl mx-auto">
+				資産成長の複利効果、積立上限（新NISA枠など）、そしてライフイベントに伴う一時的な資金引き出しの推移をリアルタイムに計算します。
+			</p>
+		</header>
+
+		<!-- 1. 資産推移グラフ -->
+		<section class="bg-white p-5 md:p-7 rounded-3xl shadow-sm border border-slate-200/80">
+			<div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+				<h2 class="text-lg md:text-xl font-bold text-slate-800 flex items-center">
+					<svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path>
+					</svg>
+					資産推移グラフ
+				</h2>
+				<div class="flex flex-wrap items-center gap-4 text-xs font-medium text-slate-500">
+					<span class="flex items-center"><span class="w-3 h-3 rounded-full bg-blue-600 inline-block mr-1"></span>最終資産額</span>
+					<span class="flex items-center"><span class="w-3 h-3 rounded-full bg-slate-400 inline-block mr-1"></span>投資元本</span>
+					<span class="flex items-center"><span class="w-3 h-3 rounded-full bg-rose-500 inline-block mr-1"></span>取り崩し点</span>
+					<span class="flex items-center"><span class="w-3 h-3 rounded-full bg-amber-400 inline-block mr-1"></span>積立上限到達</span>
+				</div>
+			</div>
+			
+			<div class="relative w-full h-[320px] md:h-[420px]">
+				<canvas id="simulationChart"></canvas>
+			</div>
+		</section>
+
+		<!-- 2. 最終結果サマリー -->
+		<section class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+			<!-- 投資元本 -->
+			<div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col justify-between">
+				<span class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">最終的な投資元本</span>
+				<div class="flex items-baseline justify-between">
+					<span class="text-2xl md:text-3xl font-extrabold text-slate-700" id="summary-principal">0</span>
+					<span class="text-sm font-semibold text-slate-500">万円</span>
+				</div>
+			</div>
+
+			<!-- 運用益 -->
+			<div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col justify-between">
+				<span class="text-xs font-bold uppercase tracking-wider text-emerald-600 mb-1">運用益（複利効果）</span>
+				<div class="flex items-baseline justify-between">
+					<span class="text-2xl md:text-3xl font-extrabold text-emerald-600" id="summary-profit">+0</span>
+					<span class="text-sm font-semibold text-emerald-600">万円</span>
+				</div>
+			</div>
+
+			<!-- 最終資産額 -->
+			<div class="bg-gradient-to-br from-blue-600 to-indigo-700 p-5 rounded-2xl shadow-md text-white flex flex-col justify-between">
+				<span class="text-xs font-bold uppercase tracking-wider text-blue-200 mb-1">最終資産額</span>
+				<div class="flex items-baseline justify-between">
+					<span class="text-3xl md:text-4xl font-black tracking-tight" id="summary-total">0</span>
+					<span class="text-base font-bold text-blue-100">万円</span>
+				</div>
+			</div>
+		</section>
+
+		<!-- 3. 基本条件（スライダー） -->
+		<section class="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-200/80 space-y-6">
+			<h2 class="text-lg md:text-xl font-bold text-slate-800 flex items-center border-b border-slate-100 pb-3">
+				<svg class="w-5 h-5 mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+				</svg>
+				基本条件設定
+			</h2>
+
+			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+				<!-- 初期投資額 -->
+				<div class="space-y-2">
+					<div class="flex justify-between items-center text-sm font-medium">
+						<label for="slider-initial" class="text-slate-600">初期投資額</label>
+						<span class="text-base font-bold text-blue-600"><span id="val-initial">0</span> 万円</span>
+					</div>
+					<input type="range" id="slider-initial" min="0" max="1000" step="10" value="100">
+					<div class="flex justify-between text-[11px] text-slate-400">
+						<span>0万円</span>
+						<span>500万円</span>
+						<span>1,000万円</span>
+					</div>
+				</div>
+
+				<!-- 毎月の積立額 -->
+				<div class="space-y-2">
+					<div class="flex justify-between items-center text-sm font-medium">
+						<label for="slider-monthly" class="text-slate-600">毎月の積立額</label>
+						<span class="text-base font-bold text-blue-600"><span id="val-monthly">5</span> 万円</span>
+					</div>
+					<input type="range" id="slider-monthly" min="0" max="50" step="0.5" value="5">
+					<div class="flex justify-between text-[11px] text-slate-400">
+						<span>0万円</span>
+						<span>25万円</span>
+						<span>50万円</span>
+					</div>
+				</div>
+
+				<!-- 積立上限額 -->
+				<div class="space-y-2 bg-amber-50/50 p-3 -m-3 rounded-xl border border-amber-100">
+					<div class="flex justify-between items-center text-sm font-medium">
+						<label for="slider-limit" class="text-slate-700 font-semibold flex items-center">
+							<svg class="w-4 h-4 mr-1 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+							積立上限額
+						</label>
+						<span class="text-base font-bold text-amber-600">
+							<span id="val-limit">1800</span> <span id="unit-limit" class="text-sm">万円</span>
+						</span>
+					</div>
+					<input type="range" id="slider-limit" min="0" max="10000" step="10" value="10000">
+					<div class="flex justify-between text-[11px] text-slate-500">
+						<span>0万円</span>
+						<span>5000万円</span>
+						<span>上限なし</span>
+					</div>
+				</div>
+
+				<!-- 想定年利回り -->
+				<div class="space-y-2 lg:col-start-1">
+					<div class="flex justify-between items-center text-sm font-medium">
+						<label for="slider-rate" class="text-slate-600">想定年利回り</label>
+						<span class="text-base font-bold text-blue-600"><span id="val-rate">5.0</span> %</span>
+					</div>
+					<input type="range" id="slider-rate" min="0" max="15" step="0.1" value="5.0">
+					<div class="flex justify-between text-[11px] text-slate-400">
+						<span>0%</span>
+						<span>7.5%</span>
+						<span>15%</span>
+					</div>
+				</div>
+
+				<!-- 運用期間 -->
+				<div class="space-y-2 lg:col-span-2">
+					<div class="flex justify-between items-center text-sm font-medium">
+						<label for="slider-years" class="text-slate-600">運用期間</label>
+						<span class="text-base font-bold text-blue-600"><span id="val-years">20</span> 年</span>
+					</div>
+					<input type="range" id="slider-years" min="1" max="40" step="1" value="20">
+					<div class="flex justify-between text-[11px] text-slate-400">
+						<span>1年</span>
+						<span>20年</span>
+						<span>40年</span>
+					</div>
+				</div>
+			</div>
+		</section>
+
+		<!-- 4. 取り崩しイベント（スライダー & トグル） -->
+		<section class="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-200/80 space-y-6">
+			<div>
+				<h2 class="text-lg md:text-xl font-bold text-slate-800 flex items-center">
+					<svg class="w-5 h-5 mr-2 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+					</svg>
+					取り崩しイベント設定（最大3回）
+				</h2>
+				<p class="text-xs md:text-sm text-slate-500 mt-1">
+					住宅購入・教育資金・マイカー購入など、途中でまとまった資金を引き出すシミュレーションができます。
+				</p>
+			</div>
+
+			<div class="grid grid-cols-1 gap-6">
+				<!-- イベント 1 -->
+				<div class="p-4 md:p-5 rounded-2xl bg-slate-50 border border-slate-200/60 space-y-4 transition-all" id="card-wd-1">
+					<div class="flex items-center justify-between">
+						<label class="inline-flex items-center cursor-pointer">
+							<input type="checkbox" id="chk-wd-1" class="sr-only peer" checked>
+							<div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-500"></div>
+							<span class="ml-3 text-sm font-bold text-slate-700">イベント 1 を有効化</span>
+						</label>
+						<span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-rose-100 text-rose-700 hidden" id="badge-wd-1">適用中</span>
+					</div>
+
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 pt-2" id="controls-wd-1">
+						<!-- 何ヶ月目 -->
+						<div class="space-y-1">
+							<div class="flex justify-between items-center text-xs font-medium">
+								<span class="text-slate-600">実施時期</span>
+								<span class="font-bold text-rose-600"><span id="val-wd-month-1">60</span> ヶ月目 <span class="text-slate-400 font-normal" id="val-wd-year-1">(5年目)</span></span>
+							</div>
+							<input type="range" id="slider-wd-month-1" class="range-rose" min="1" max="240" step="1" value="60">
+						</div>
+
+						<!-- 引き出し額 -->
+						<div class="space-y-1">
+							<div class="flex justify-between items-center text-xs font-medium">
+								<span class="text-slate-600">取り崩し額</span>
+								<span class="font-bold text-rose-600"><span id="val-wd-amount-1">300</span> 万円</span>
+							</div>
+							<input type="range" id="slider-wd-amount-1" class="range-rose" min="0" max="3000" step="10" value="300">
+						</div>
+					</div>
+				</div>
+
+				<!-- イベント 2 -->
+				<div class="p-4 md:p-5 rounded-2xl bg-slate-50 border border-slate-200/60 space-y-4 transition-all opacity-60" id="card-wd-2">
+					<div class="flex items-center justify-between">
+						<label class="inline-flex items-center cursor-pointer">
+							<input type="checkbox" id="chk-wd-2" class="sr-only peer">
+							<div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-500"></div>
+							<span class="ml-3 text-sm font-bold text-slate-700">イベント 2 を有効化</span>
+						</label>
+						<span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-rose-100 text-rose-700 hidden" id="badge-wd-2">適用中</span>
+					</div>
+
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 pt-2 pointer-events-none" id="controls-wd-2">
+						<div class="space-y-1">
+							<div class="flex justify-between items-center text-xs font-medium">
+								<span class="text-slate-600">実施時期</span>
+								<span class="font-bold text-rose-600"><span id="val-wd-month-2">120</span> ヶ月目 <span class="text-slate-400 font-normal" id="val-wd-year-2">(10年目)</span></span>
+							</div>
+							<input type="range" id="slider-wd-month-2" class="range-rose" min="1" max="240" step="1" value="120" disabled>
+						</div>
+						<div class="space-y-1">
+							<div class="flex justify-between items-center text-xs font-medium">
+								<span class="text-slate-600">取り崩し額</span>
+								<span class="font-bold text-rose-600"><span id="val-wd-amount-2">500</span> 万円</span>
+							</div>
+							<input type="range" id="slider-wd-amount-2" class="range-rose" min="0" max="3000" step="10" value="500" disabled>
+						</div>
+					</div>
+				</div>
+
+				<!-- イベント 3 -->
+				<div class="p-4 md:p-5 rounded-2xl bg-slate-50 border border-slate-200/60 space-y-4 transition-all opacity-60" id="card-wd-3">
+					<div class="flex items-center justify-between">
+						<label class="inline-flex items-center cursor-pointer">
+							<input type="checkbox" id="chk-wd-3" class="sr-only peer">
+							<div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-500"></div>
+							<span class="ml-3 text-sm font-bold text-slate-700">イベント 3 を有効化</span>
+						</label>
+						<span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-rose-100 text-rose-700 hidden" id="badge-wd-3">適用中</span>
+					</div>
+
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 pt-2 pointer-events-none" id="controls-wd-3">
+						<div class="space-y-1">
+							<div class="flex justify-between items-center text-xs font-medium">
+								<span class="text-slate-600">実施時期</span>
+								<span class="font-bold text-rose-600"><span id="val-wd-month-3">180</span> ヶ月目 <span class="text-slate-400 font-normal" id="val-wd-year-3">(15年目)</span></span>
+							</div>
+							<input type="range" id="slider-wd-month-3" class="range-rose" min="1" max="240" step="1" value="180" disabled>
+						</div>
+						<div class="space-y-1">
+							<div class="flex justify-between items-center text-xs font-medium">
+								<span class="text-slate-600">取り崩し額</span>
+								<span class="font-bold text-rose-600"><span id="val-wd-amount-3">1000</span> 万円</span>
+							</div>
+							<input type="range" id="slider-wd-amount-3" class="range-rose" min="0" max="3000" step="10" value="1000" disabled>
+						</div>
+					</div>
+				</div>
+
+			</div>
+		</section>
+<div style="margin-top:20px; text-align:center;">
+    <a href="../" style="color:#00ff41; text-decoration:none; font-size:1rem;">
+        <- return
+    </a>
+</div>
+	</div>
+
+	<!-- JavaScript ロジック -->
+	<script>
+		let myChart = null;
+
+		function formatNumber(num) {
+			return Math.floor(num).toLocaleString('ja-JP');
+		}
+
+		const MAX_LIMIT_VALUE = 10000; // スライダー最大値を「上限なし」とみなす閾値
+
+		function syncUIState() {
+			const years = parseInt(document.getElementById('slider-years').value);
+			const maxMonths = years * 12;
+
+			// 各イベントの動的調整（運用期間に合わせて実施月スライダーのmaxを更新）
+			for (let i = 1; i <= 3; i++) {
+				const monthSlider = document.getElementById(`slider-wd-month-${i}`);
+				monthSlider.max = maxMonths;
+
+				if (parseInt(monthSlider.value) > maxMonths) {
+					monthSlider.value = maxMonths;
+				}
+
+				const isChecked = document.getElementById(`chk-wd-${i}`).checked;
+				const card = document.getElementById(`card-wd-${i}`);
+				const controls = document.getElementById(`controls-wd-${i}`);
+				const badge = document.getElementById(`badge-wd-${i}`);
+				const amountSlider = document.getElementById(`slider-wd-amount-${i}`);
+
+				if (isChecked) {
+					card.classList.remove('opacity-60');
+					controls.classList.remove('pointer-events-none');
+					badge.classList.remove('hidden');
+					monthSlider.removeAttribute('disabled');
+					amountSlider.removeAttribute('disabled');
+				} else {
+					card.classList.add('opacity-60');
+					controls.classList.add('pointer-events-none');
+					badge.classList.add('hidden');
+					monthSlider.setAttribute('disabled', 'true');
+					amountSlider.setAttribute('disabled', 'true');
+				}
+
+				// スライダー数値の更新
+				const currentMonth = parseInt(monthSlider.value);
+				document.getElementById(`val-wd-month-${i}`).innerText = currentMonth;
+				const y = Math.floor(currentMonth / 12);
+				const m = currentMonth % 12;
+				let yearText = "";
+				if (y > 0 && m > 0) yearText = `(${y}年${m}ヶ月目)`;
+				else if (y > 0 && m === 0) yearText = `(${y}年目)`;
+				else yearText = `(${m}ヶ月目)`;
+				document.getElementById(`val-wd-year-${i}`).innerText = yearText;
+
+				document.getElementById(`val-wd-amount-${i}`).innerText = formatNumber(document.getElementById(`slider-wd-amount-${i}`).value);
+			}
+
+			// 基本条件スライダー数値更新
+			document.getElementById('val-initial').innerText = formatNumber(document.getElementById('slider-initial').value);
+			document.getElementById('val-monthly').innerText = document.getElementById('slider-monthly').value;
+			document.getElementById('val-rate').innerText = parseFloat(document.getElementById('slider-rate').value).toFixed(1);
+			document.getElementById('val-years').innerText = document.getElementById('slider-years').value;
+
+			// 積立上限額の特別処理
+			const limitVal = parseInt(document.getElementById('slider-limit').value);
+			const valLimitEl = document.getElementById('val-limit');
+			const unitLimitEl = document.getElementById('unit-limit');
+			if (limitVal >= MAX_LIMIT_VALUE) {
+				valLimitEl.innerText = "上限なし";
+				unitLimitEl.style.display = 'none';
+			} else {
+				valLimitEl.innerText = formatNumber(limitVal);
+				unitLimitEl.style.display = 'inline';
+			}
+		}
+
+		function calculateSimulation() {
+			syncUIState();
+
+			// 値の読み出し
+			const initial = parseFloat(document.getElementById('slider-initial').value) || 0;
+			const monthly = parseFloat(document.getElementById('slider-monthly').value) || 0;
+			const annualRate = parseFloat(document.getElementById('slider-rate').value) || 0;
+			const years = parseInt(document.getElementById('slider-years').value) || 0;
+			const limitSetting = parseInt(document.getElementById('slider-limit').value);
+			const totalMonths = years * 12;
+
+			const hasLimit = limitSetting < MAX_LIMIT_VALUE;
+			const limitAmount = limitSetting;
+
+			// 有効な取り崩しイベント
+			const withdrawals = {};
+			for (let i = 1; i <= 3; i++) {
+				if (document.getElementById(`chk-wd-${i}`).checked) {
+					const m = parseInt(document.getElementById(`slider-wd-month-${i}`).value);
+					const amt = parseFloat(document.getElementById(`slider-wd-amount-${i}`).value);
+					if (m > 0 && amt > 0) {
+						withdrawals[m] = (withdrawals[m] || 0) + amt;
+					}
+				}
+			}
+
+			const monthlyRate = annualRate / 100 / 12;
+
+			const labels = [];
+			const balanceData = [];
+			const principalData = [];
+			const pointRadiusData = [];
+			const pointColorData = [];
+
+			let currentBalance = initial;
+			let currentPrincipal = initial;
+			let cumulativeMonthlyInvestment = 0; // 初期投資を除く、毎月の積立累計額
+			let limitReachedMonth = -1; // 上限に達した月を記録
+
+			// 初期月 (0ヶ月)
+			labels.push('開始');
+			balanceData.push(currentBalance);
+			principalData.push(currentPrincipal);
+			pointRadiusData.push(0);
+			pointColorData.push('#2563eb');
+
+			// 毎月の計算
+			for (let m = 1; m <= totalMonths; m++) {
+				
+				// 積立上限の判定
+				let currentMonthlyAddition = monthly;
+				if (hasLimit && currentMonthlyAddition > 0) {
+					if (cumulativeMonthlyInvestment + currentMonthlyAddition >= limitAmount) {
+						// 上限を超える場合は、差額のみを今月の積立とする
+						currentMonthlyAddition = limitAmount - cumulativeMonthlyInvestment;
+						if (currentMonthlyAddition < 0) currentMonthlyAddition = 0;
+						
+						// 初めて上限に達した月を記録（マーカー用）
+						if (cumulativeMonthlyInvestment < limitAmount && currentMonthlyAddition >= 0) {
+							 limitReachedMonth = m;
+						}
+					}
+				}
+
+				// 投資行動の反映
+				cumulativeMonthlyInvestment += currentMonthlyAddition;
+				currentBalance = currentBalance * (1 + monthlyRate) + currentMonthlyAddition;
+				currentPrincipal += currentMonthlyAddition;
+
+				// 取り崩しの反映
+				let isWithdrawalMonth = false;
+				if (withdrawals[m]) {
+					const amt = withdrawals[m];
+					currentBalance -= amt;
+					currentPrincipal -= amt; // 元本からも引く（計算上の扱い）
+					isWithdrawalMonth = true;
+
+					// 0円未満にならないよう安全ガード
+					if (currentBalance < 0) currentBalance = 0;
+					if (currentPrincipal < 0) currentPrincipal = 0;
+				}
+
+				// グラフプロットデータ
+				const isYearEnd = (m % 12 === 0);
+				const labelStr = isYearEnd ? `${m / 12}年目` : `${m}ヶ月目`;
+
+				labels.push(labelStr);
+				balanceData.push(currentBalance);
+				principalData.push(currentPrincipal);
+
+				// マーカーの判定（優先度: 取り崩し > 上限到達）
+				if (isWithdrawalMonth) {
+					pointRadiusData.push(6);
+					pointColorData.push('#f43f5e'); // rose-500
+				} else if (m === limitReachedMonth) {
+					pointRadiusData.push(6);
+					pointColorData.push('#fbbf24'); // amber-400
+				} else {
+					pointRadiusData.push(0);
+					pointColorData.push('#2563eb');
+				}
+			}
+
+			// 最終計算結果の更新
+			const finalBalance = balanceData[balanceData.length - 1];
+			const finalPrincipal = principalData[principalData.length - 1];
+			const profit = finalBalance - finalPrincipal;
+
+			document.getElementById('summary-total').innerText = formatNumber(finalBalance);
+			document.getElementById('summary-principal').innerText = formatNumber(finalPrincipal);
+			
+			const profitElem = document.getElementById('summary-profit');
+			if (profit >= 0) {
+				profitElem.innerText = `+${formatNumber(profit)}`;
+				profitElem.className = "text-2xl md:text-3xl font-extrabold text-emerald-600";
+			} else {
+				profitElem.innerText = formatNumber(profit);
+				profitElem.className = "text-2xl md:text-3xl font-extrabold text-rose-600";
+			}
+
+			// グラフ描画
+			renderChart(labels, balanceData, principalData, pointRadiusData, pointColorData, years);
+		}
+
+		function renderChart(labels, balanceData, principalData, pointRadiusData, pointColorData, years) {
+			const ctx = document.getElementById('simulationChart').getContext('2d');
+
+			if (myChart) {
+				myChart.destroy();
+			}
+
+			myChart = new Chart(ctx, {
+				type: 'line',
+				data: {
+					labels: labels,
+					datasets: [
+						{
+							label: '最終資産額（万円）',
+							data: balanceData,
+							borderColor: '#2563eb',
+							backgroundColor: (context) => {
+								const chart = context.chart;
+								const {ctx, chartArea} = chart;
+								if (!chartArea) return null;
+								const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+								gradient.addColorStop(0, 'rgba(37, 99, 235, 0.25)');
+								gradient.addColorStop(1, 'rgba(37, 99, 235, 0.0)');
+								return gradient;
+							},
+							borderWidth: 3,
+							fill: true,
+							tension: 0.25,
+							pointRadius: pointRadiusData,
+							pointHoverRadius: 8,
+							pointBackgroundColor: pointColorData,
+							pointBorderColor: pointColorData,
+						},
+						{
+							label: '投資元本（万円）',
+							data: principalData,
+							borderColor: '#94a3b8',
+							backgroundColor: 'transparent',
+							borderWidth: 2,
+							borderDash: [6, 6],
+							fill: false,
+							tension: 0,
+							pointRadius: 0,
+							pointHoverRadius: 4
+						}
+					]
+				},
+				options: {
+					responsive: true,
+					maintainAspectRatio: false,
+					interaction: {
+						mode: 'index',
+						intersect: false,
+					},
+					plugins: {
+						legend: {
+							display: false 
+						},
+						tooltip: {
+							padding: 12,
+							backgroundColor: 'rgba(15, 23, 42, 0.9)',
+							titleFont: { family: "'Inter', 'Noto Sans JP', sans-serif", size: 13 },
+							bodyFont: { family: "'Inter', 'Noto Sans JP', sans-serif", size: 12 },
+							callbacks: {
+								label: function(context) {
+									let label = context.dataset.label || '';
+									if (label) label += ': ';
+									if (context.parsed.y !== null) {
+										label += Math.floor(context.parsed.y).toLocaleString('ja-JP') + ' 万円';
+									}
+									return label;
+								}
+							}
+						}
+					},
+					scales: {
+						y: {
+							beginAtZero: true,
+							ticks: {
+								callback: function(value) {
+									return value.toLocaleString('ja-JP') + '万円';
+								},
+								font: { family: "'Inter', 'Noto Sans JP', sans-serif", size: 11 },
+								color: '#64748b'
+							},
+							grid: {
+								color: '#f1f5f9'
+							}
+						},
+						x: {
+							ticks: {
+								font: { family: "'Inter', 'Noto Sans JP', sans-serif", size: 11 },
+								color: '#64748b',
+								maxRotation: 0,
+								autoSkip: true,
+								maxTicksLimit: years > 20 ? 10 : 12
+							},
+							grid: {
+								display: false
+							}
+						}
+					}
+				}
+			});
+		}
+
+		// イベントリスナーの登録
+		document.querySelectorAll('input[type=range], input[type=checkbox]').forEach(element => {
+			element.addEventListener('input', calculateSimulation);
+		});
+
+		// 初回計算
+		window.addEventListener('DOMContentLoaded', calculateSimulation);
+	</script>
+</body>
+</html>
