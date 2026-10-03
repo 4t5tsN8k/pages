@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>作業ログ管理</title>
+    <style>
+        /* 業務システム風のソリッドなデザイン定義 */
+        :root {
+            --bg-base: #f0f2f5;
+            --bg-panel: #ffffff;
+            --text-main: #333333;
+            --text-sub: #666666;
+            --border-color: #cccccc;
+            --btn-bg: #e0e0e0;
+            --btn-hover: #d5d5d5;
+            --btn-primary: #444444;
+            --btn-primary-hover: #222222;
+            --btn-text: #ffffff;
+            --font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+        }
+
+        body { 
+            font-family: var(--font-family); 
+            padding: 20px; 
+            background-color: var(--bg-base); 
+            color: var(--text-main); 
+            font-size: 14px;
+            margin: 0;
+            line-height: 1.5;
+        }
+        
+        .container { 
+            max-width: 850px; 
+            margin: 0 auto; 
+            background: var(--bg-panel); 
+            padding: 25px 35px; 
+            border: 1px solid var(--border-color); 
+            box-sizing: border-box;
+        }
+
+        h1 { 
+            font-size: 18px; 
+            margin-top: 0; 
+            border-bottom: 2px solid var(--text-main); 
+            padding-bottom: 8px;
+            margin-bottom: 25px;
+        }
+
+        /* フォームエリア */
+        .form-row { 
+            display: flex; 
+            flex-wrap: wrap; /* スマホなどで折り返すため */
+            gap: 15px; 
+            margin-bottom: 15px; 
+        }
+        
+        .form-group { 
+            flex: 1; 
+            min-width: 120px; /* 極端に狭くなるのを防ぐ */
+        }
+        
+        /* 特定の幅をPCで維持、スマホでリセットする用 */
+        .form-group.time { flex: 0 0 120px; }
+        .form-group.task { flex: 0 0 200px; }
+        .form-group.memo { flex: 1; min-width: 200px; }
+
+        label { 
+            display: block; 
+            margin-bottom: 5px; 
+            font-weight: bold; 
+            font-size: 13px;
+        }
+        
+        select, input[type="text"], input[type="time"], textarea { 
+            width: 100%; 
+            padding: 10px 8px; /* タップしやすいように少し高さを出す */
+            box-sizing: border-box; 
+            border: 1px solid var(--border-color); 
+            font-size: 16px; /* スマホでのズーム防止のため16px以上推奨 */
+            font-family: inherit;
+            background-color: #fff;
+        }
+        
+        select:focus, input:focus, textarea:focus {
+            outline: none;
+            border-color: #888;
+        }
+
+        /* ボタン類 */
+        button, .btn-label {
+            display: inline-block;
+            padding: 10px 16px; /* タップしやすく */
+            background-color: var(--btn-bg);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            font-size: 14px;
+            font-family: inherit;
+            text-align: center;
+            box-sizing: border-box;
+            text-decoration: none;
+        }
+
+        button:hover, .btn-label:hover {
+            background-color: var(--btn-hover);
+        }
+
+        .btn-record { 
+            background-color: var(--btn-primary); 
+            color: var(--btn-text); 
+            border: 1px solid var(--btn-primary);
+            padding: 12px 25px;
+            font-weight: bold;
+            width: 100%; /* デフォルトで幅100%、PC向けメディアクエリで戻す */
+        }
+        
+        .btn-record:hover { 
+            background-color: var(--btn-primary-hover); 
+        }
+
+        /* アクションバー */
+        .action-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .action-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        /* テーブル */
+        .table-container {
+            width: 100%;
+            overflow-x: auto; /* スマホではみ出た時に横スクロールさせる */
+            margin-bottom: 20px;
+        }
+
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            min-width: 600px; /* 最小幅を設定して崩れを防ぐ */
+        }
+        
+        th, td { 
+            border: 1px solid var(--border-color); 
+            padding: 10px; 
+            text-align: left; 
+            font-size: 13px;
+        }
+        
+        th { 
+            background-color: #f8f8f8; 
+            font-weight: bold;
+            white-space: nowrap; /* ヘッダーの改行を防ぐ */
+        }
+
+        /* 設定エリア */
+        .settings-area { 
+            margin-bottom: 25px; 
+            border: 1px solid var(--border-color);
+            background-color: #fafafa;
+        }
+        
+        .settings-summary { 
+            cursor: pointer; 
+            padding: 12px 10px;
+            font-weight: bold; 
+            outline: none; 
+            font-size: 14px;
+        }
+        
+        .settings-content { 
+            padding: 15px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .empty-message {
+            text-align: center;
+            color: var(--text-sub);
+            padding: 30px;
+        }
+        
+        .text-btn {
+            background: none;
+            border: none;
+            color: #0056b3;
+            cursor: pointer;
+            padding: 5px; /* タッチ領域確保 */
+            font-size: 12px;
+            text-decoration: underline;
+        }
+        .text-btn:hover { color: #d9534f; }
+        .text-danger { color: #d9534f !important; }
+        
+        /* ユーティリティ */
+        .mt-35 { margin-top: 35px; }
+        .mb-10 { margin-bottom: 10px; }
+        .fw-bold { font-weight: bold; }
+        .fs-14 { font-size: 14px; }
+
+        /* ======== レスポンシブ (PC等 넓い画面向け) ======== */
+        @media (min-width: 601px) {
+            .btn-record { width: auto; } /* PCでは内容に合わせた幅に */
+            .settings-actions {
+                display: flex; 
+                justify-content: space-between; 
+                align-items: center; 
+                margin-top: 15px;
+            }
+        }
+
+        /* ======== レスポンシブ (スマホ等 狭い画面向け) ======== */
+        @media (max-width: 600px) {
+            body { padding: 10px; }
+            .container { padding: 15px 15px; border-radius: 4px; }
+            
+            /* フォームを縦並びに */
+            .form-row { flex-direction: column; gap: 10px; }
+            .form-group.time, .form-group.task, .form-group.memo { flex: 1 1 100%; }
+            
+            /* アクションバーのボタンなどを縦に並べる場合も */
+            .action-bar { flex-direction: column; align-items: flex-start; }
+            .action-buttons { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+            .action-buttons button, .action-buttons .btn-label { width: 100%; font-size: 12px; padding: 10px 5px; }
+            
+            /* 「全件クリア」など3つ目のボタンのレイアウト調整 */
+            .action-buttons .text-danger { grid-column: span 2; margin-left: 0 !important; background-color: #ffeaea; border-color: #ffcccc;}
+
+            /* 設定エリア内のボタン調整 */
+            .settings-actions {
+                display: flex;
+                flex-direction: column;
+                gap: 15px;
+                margin-top: 15px;
+            }
+            .settings-actions .btn-save-master {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>作業ログ管理</h1>
+        
+        <!-- 入力フォーム -->
+        <div class="form-row">
+            <div class="form-group time">
+                <label for="startTime">開始時刻</label>
+                <input type="time" id="startTime" required>
+            </div>
+            <div class="form-group task">
+                <label for="taskType">作業項目</label>
+                <select id="taskType"></select>
+            </div>
+            <div class="form-group memo">
+                <label for="taskMemo">メモ</label>
+                <input type="text" id="taskMemo" placeholder="作業の補足や備考を入力">
+            </div>
+        </div>
+        
+        <div>
+            <button class="btn-record" onclick="addLog()">記録を追加</button>
+        </div>
+        
+        <div class="mt-35 mb-10 fw-bold fs-14">記録一覧</div>
+        
+        <!-- データ表示テーブル -->
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 12%;">開始時刻</th>
+                        <th style="width: 20%;">作業項目</th>
+                        <th style="width: 40%;">メモ</th>
+                        <th style="width: 18%;">記録日時</th>
+                        <th style="width: 10%; text-align: center;">操作</th>
+                    </tr>
+                </thead>
+                <tbody id="logTableBody">
+                    <!-- Javascriptで生成 -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 以下、管理・設定エリア -->
+        <hr style="margin: 30px 0 25px 0; border: 0; border-top: 1px solid var(--border-color);">
+
+        <!-- ログのCSV入出力 -->
+        <div class="action-bar">
+            <div class="fw-bold fs-14">作業ログデータ</div>
+            <div class="action-buttons">
+                <label class="btn-label" style="margin: 0;">
+                    CSV入力
+                    <input type="file" accept=".csv" onchange="importLogsCSV(event)" style="display: none;">
+                </label>
+                <button type="button" onclick="exportLogsCSV()">CSV出力</button>
+                <button type="button" onclick="clearLogs()" class="text-danger" style="margin-left: 10px;">全件クリア</button>
+            </div>
+        </div>
+
+        <!-- 設定エリア（作業項目マスタ） -->
+        <details class="settings-area">
+            <summary class="settings-summary">作業項目の編集</summary>
+            <div class="settings-content">
+                <p style="font-size: 12px; color: #666; margin-top: 0; margin-bottom: 10px;">
+                    1行に1項目ずつ入力し「マスタ保存」をクリックすると、上部のプルダウンに反映されます。
+                </p>
+                <textarea id="editTasks" rows="7"></textarea>
+                
+                <div class="settings-actions">
+                    <div class="action-buttons">
+                        <label class="btn-label" style="margin: 0;">
+                            CSV入力
+                            <input type="file" accept=".csv" onchange="importTasksCSV(event)" style="display: none;">
+                        </label>
+                        <button type="button" onclick="exportTasksCSV()">CSV出力</button>
+                    </div>
+                    <button type="button" onclick="saveTasks()" class="btn-save-master" style="background-color: var(--btn-primary); color: white; border: none; font-weight: bold; padding: 10px 20px;">マスタ保存</button>
+                </div>
+            </div>
+        </details>
+    </div>
+
+    <script>
+        // ストレージキー
+        const STORAGE_KEY_LOGS = 'worklog_data_v3';
+        const STORAGE_KEY_TASKS = 'worklog_tasks_v3';
+
+        // 状態管理
+        let logs = [];
+        
+        // デフォルトの作業項目リスト
+        const defaultTasks = [
+            "ヘルプデスク/問合対応",
+            "システム対応/設定",
+            "PC等機器設定",
+            "打合せ/会議",
+            "調査/勉強",
+            "資料作成",
+            "申請対応",
+            "その他作業"
+        ];
+
+        window.onload = function() {
+            setInitialTime();
+            loadTasks();
+            loadLogs();
+        };
+
+        /* =========================================
+           ログ管理の処理 
+        ========================================= */
+        function loadLogs() {
+            const saved = localStorage.getItem(STORAGE_KEY_LOGS);
+            if (saved) {
+                try {
+                    logs = JSON.parse(saved);
+                } catch (e) {
+                    logs = [];
+                }
+            }
+            renderLogs();
+        }
+
+        function saveLogs() {
+            localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(logs));
+        }
+
+        function renderLogs() {
+            const tbody = document.getElementById('logTableBody');
+            tbody.innerHTML = '';
+            
+            if (logs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="empty-message">記録データがありません。</td></tr>';
+                return;
+            }
+            
+            logs.forEach((log, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${escapeHTML(log.startTime)}</td>
+                    <td>${escapeHTML(log.taskType)}</td>
+                    <td>${escapeHTML(log.memo)}</td>
+                    <td style="color: #666;">${escapeHTML(log.recordTime)}</td>
+                    <td style="text-align: center;">
+                        <button type="button" class="text-btn" onclick="deleteLog(${index})">削除</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function addLog() {
+            const startTime = document.getElementById('startTime').value;
+            const taskType = document.getElementById('taskType').value;
+            const memo = document.getElementById('taskMemo').value;
+            
+            if (!startTime) {
+                alert("開始時刻を入力してください。");
+                return;
+            }
+
+            const now = new Date();
+            const yyyy = now.getFullYear();
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const dd = String(now.getDate()).padStart(2, '0');
+            const hh = String(now.getHours()).padStart(2, '0');
+            const min = String(now.getMinutes()).padStart(2, '0');
+            const recordTime = `${yyyy}/${mm}/${dd} ${hh}:${min}`;
+            
+            logs.unshift({
+                startTime: startTime,
+                taskType: taskType,
+                memo: memo,
+                recordTime: recordTime
+            });
+            
+            saveLogs();
+            renderLogs();
+            
+            document.getElementById('taskMemo').value = '';
+            setInitialTime();
+        }
+
+        function deleteLog(index) {
+            if(confirm('対象の記録を削除しますか？')) {
+                logs.splice(index, 1);
+                saveLogs();
+                renderLogs();
+            }
+        }
+
+        function clearLogs() {
+            if (logs.length === 0) return;
+            if (confirm('すべての記録データを削除します。よろしいですか？')) {
+                logs = [];
+                saveLogs();
+                renderLogs();
+            }
+        }
+
+        /* =========================================
+           作業ログのCSV入出力
+        ========================================= */
+        function exportLogsCSV() {
+            if (logs.length === 0) {
+                alert("出力するデータがありません。");
+                return;
+            }
+            
+            let csvContent = "開始時刻,作業項目,メモ,記録日時\n";
+            logs.forEach(log => {
+                const cols = [log.startTime, log.taskType, log.memo, log.recordTime];
+                const rowData = cols.map(col => `"${String(col).replace(/"/g, '""')}"`);
+                csvContent += rowData.join(",") + "\n";
+            });
+            
+            downloadCSV(csvContent, 'worklogs');
+        }
+
+        function importLogsCSV(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                
+                const lines = text.split('\n');
+                let importedCount = 0;
+                const newLogs = [];
+                
+                // ヘッダー行判定
+                let startIndex = (lines.length > 0 && lines[0].includes('開始時刻')) ? 1 : 0;
+
+                for (let i = startIndex; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
+                    
+                    const row = parseCSVRow(line);
+                    if (row.length >= 4) {
+                        newLogs.push({
+                            startTime: row[0],
+                            taskType: row[1],
+                            memo: row[2],
+                            recordTime: row[3]
+                        });
+                        importedCount++;
+                    }
+                }
+                
+                if (importedCount > 0) {
+                    logs = logs.concat(newLogs);
+                    logs.sort((a, b) => b.recordTime.localeCompare(a.recordTime));
+                    saveLogs();
+                    renderLogs();
+                    alert(`${importedCount}件の作業ログをインポートしました。`);
+                } else {
+                    alert("取り込めるデータがありませんでした。");
+                }
+                event.target.value = ''; 
+            };
+            reader.readAsText(file);
+        }
+
+        /* =========================================
+           作業項目の管理・CSV入出力
+        ========================================= */
+        function loadTasks() {
+            const savedTasks = localStorage.getItem(STORAGE_KEY_TASKS);
+            const tasks = savedTasks ? JSON.parse(savedTasks) : defaultTasks;
+            
+            const select = document.getElementById('taskType');
+            const textarea = document.getElementById('editTasks');
+            
+            select.innerHTML = '';
+            tasks.forEach(task => {
+                const option = document.createElement('option');
+                option.value = task;
+                option.textContent = task;
+                select.appendChild(option);
+            });
+            textarea.value = tasks.join('\n');
+        }
+
+        // silentフラグを追加（CSVインポート等の裏側で保存する際にアラートを出さないため）
+        function saveTasks(silent = false) {
+            const text = document.getElementById('editTasks').value;
+            const tasks = text.split('\n').map(t => t.trim()).filter(t => t !== '');
+            
+            if (tasks.length === 0) {
+                alert("最低1つは項目を入力してください。");
+                return;
+            }
+            localStorage.setItem(STORAGE_KEY_TASKS, JSON.stringify(tasks));
+            loadTasks();
+            if (!silent) {
+                alert('作業項目マスタを更新しました。');
+            }
+        }
+
+        function exportTasksCSV() {
+            const text = document.getElementById('editTasks').value;
+            const tasks = text.split('\n').map(t => t.trim()).filter(t => t !== '');
+            
+            if (tasks.length === 0) {
+                alert("出力する項目がありません。");
+                return;
+            }
+            
+            let csvContent = "作業項目\n";
+            tasks.forEach(task => {
+                csvContent += `"${task.replace(/"/g, '""')}"\n`;
+            });
+            
+            downloadCSV(csvContent, 'worklog_tasks');
+        }
+
+        function importTasksCSV(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                const lines = text.split('\n');
+                const newTasks = [];
+                
+                // ヘッダー行判定
+                let startIndex = (lines.length > 0 && lines[0].includes('作業項目')) ? 1 : 0;
+                
+                for (let i = startIndex; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
+                    
+                    const row = parseCSVRow(line);
+                    if (row.length > 0 && row[0]) {
+                        newTasks.push(row[0]);
+                    }
+                }
+                
+                if (newTasks.length > 0) {
+                    document.getElementById('editTasks').value = newTasks.join('\n');
+                    saveTasks(true); 
+                    alert(`${newTasks.length}件の作業項目をインポートしました。`);
+                } else {
+                    alert("取り込める項目がありませんでした。");
+                }
+                event.target.value = ''; 
+            };
+            reader.readAsText(file);
+        }
+
+        /* =========================================
+           ユーティリティ関数
+        ========================================= */
+        function setInitialTime() {
+            const now = new Date();
+            const hh = String(now.getHours()).padStart(2, '0');
+            const min = String(now.getMinutes()).padStart(2, '0');
+            document.getElementById('startTime').value = `${hh}:${min}`;
+        }
+
+        function escapeHTML(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function parseCSVRow(str) {
+            const regex = /"(?:[^"\\]|\\.)*"|[^,]+/g;
+            const matches = str.match(regex) || [];
+            return matches.map(m => {
+                if (m.startsWith('"') && m.endsWith('"')) {
+                    return m.slice(1, -1).replace(/""/g, '"');
+                }
+                return m;
+            });
+        }
+
+        function downloadCSV(csvContent, filenamePrefix) {
+            const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+            const blob = new Blob([bom, csvContent], { type: 'text/csv;charset=utf-8;' });
+            
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            
+            const timestamp = new Date().getTime();
+            link.setAttribute("download", `${filenamePrefix}_${timestamp}.csv`);
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>
