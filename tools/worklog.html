@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>作業ログ管理</title>
+    <title>作業メモ</title>
     <style>
         /* 業務システム風のソリッドなデザイン定義 */
         :root {
@@ -248,7 +248,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>作業ログ管理</h1>
+        <h1>作業メモ</h1>
         
         <!-- 入力フォーム -->
         <div class="form-row">
@@ -262,7 +262,7 @@
             </div>
             <div class="form-group memo">
                 <label for="taskMemo">メモ</label>
-                <input type="text" id="taskMemo" placeholder="作業の補足や備考を入力">
+                <input type="text" id="taskMemo" placeholder="備考を入力">
             </div>
         </div>
         
@@ -295,7 +295,7 @@
 
         <!-- ログのCSV入出力 -->
         <div class="action-bar">
-            <div class="fw-bold fs-14">作業ログデータ</div>
+            <div class="fw-bold fs-14">作業メモデータ</div>
             <div class="action-buttons">
                 <label class="btn-label" style="margin: 0;">
                     CSV入力
@@ -345,7 +345,8 @@
             "打合せ/会議",
             "調査/勉強",
             "資料作成",
-            "申請対応",
+            "請求書/精算",
+            "申請/承認 対応",
             "その他作業"
         ];
 
