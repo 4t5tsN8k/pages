@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Authenticator</title>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <style>
+        body { font-family: monospace, sans-serif; max-width: 500px; margin: 20px auto; padding: 0 15px; }
+        .card { border: 1px solid #ccc; padding: 15px; margin-bottom: 10px; border-radius: 6px; background-color: #f9f9f9; }
+        .code { font-size: 28px; font-weight: bold; color: #0056b3; letter-spacing: 4px; margin-top: 5px; }
+        .form-group { margin-bottom: 10px; }
+        input[type="text"] { padding: 8px; width: 100%; margin-top: 5px; box-sizing: border-box; }
+        button { margin-right: 5px; margin-top: 5px; padding: 8px 12px; cursor: pointer; border: 1px solid #999; border-radius: 4px; background: #fff; }
+        button:hover { background: #eee; }
+        #camera-container { display: none; margin-top: 10px; text-align: center; }
+        #video { width: 100%; max-width: 300px; border: 1px solid #ccc; border-radius: 4px; background: #000; }
+        /* リンク */
+        .footer-link {
+            margin-top: 40px;
+        }
+
+        .footer-link a {
+            color: #5a3a2b;
+            text-decoration: none;
+            font-size: 0.7rem;
+            transition: color 0.2s;
+        }
+
+        .footer-link a:hover {
+            color: var(--accent);
+        }
+    </style>
+</head>
+<body>
+    <h2>My Authenticator</h2>
+    
+    <div id="add-form" class="card">
+        <div class="form-group">
+            <button onclick="startScan()">📷 QRコードをカメラで読み取る</button>
+        </div>
+
+        <!-- カメラ映像のプレビュー用 -->
+        <div id="camera-container">
+            <video id="video" autoplay playsinline></video>
+            <br>
+            <button onclick="stopScan()">キャンセル</button>
+        </div>
+
+        <div class="form-group">
+            <label>Name: </label>
+            <input type="text" id="input-name" placeholder="GitHub">
+        </div>
+        <div class="form-group">
+            <label>Secret: </label>
+            <input type="text" id="input-secret" placeholder="JBSWY3DPEHPK3PXP">
+        </div>
+        <button onclick="addAccount()">追加 (最大5件)</button>
+        <button onclick="clearAccounts()">全削除</button>
+    </div>
+
+    <div id="codes-container"></div>
+
+    <div class="footer-link">
+        <a href="../">← RETURN</a>
+    </div>
+    <script>
+// ==========================================
+        // 1. QRコード読み取り機能 (jsQR版)
+        // ==========================================
+        let mediaStream = null;
+        let scanInterval = null;
+
+        async function startScan() {
+            // ライブラリが読み込めているかチェック
+            if (typeof jsQR === 'undefined') {
+                alert("QRコード解析ライブラリが読み込めませんでした。ネット接続を確認してください。");
+                return;
+            }
+
+            const video = document.getElementById('video');
+            const container = document.getElementById('camera-container');
+
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: { ideal: "environment" } }
+                });
+
+                video.srcObject = mediaStream;
+                video.setAttribute("playsinline", true); // iOS対応
+                container.style.display = 'block';
+                video.play();
+
+                // 映像を画像データに変換するための裏方キャンバス
+                const canvas = document.createElement("canvas");
+                const ctx = canvas.getContext("2d", { willReadFrequently: true });
+
+                // 0.5秒ごとに映像をチェック
+                scanInterval = setInterval(() => {
+                    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                        canvas.width = video.videoWidth;
+                        canvas.height = video.videoHeight;
+                        
+                        // カメラ映像をキャンバスに描画
+                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                        
+                        // jsQRで解析！
+                        const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                            inversionAttempts: "dontInvert",
+                        });
+
+                        if (code) {
+                            parseOTPAuthURL(code.data);
+                            stopScan();
+                        }
+                    }
+                }, 500);
+
+            } catch (err) {
+                alert("カメラの起動に失敗しました。\nエラー: " + err.message);
+            }
+        }
+
+        function stopScan() {
+            if (scanInterval) clearInterval(scanInterval);
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+            }
+            document.getElementById('camera-container').style.display = 'none';
+        }
+
+        function parseOTPAuthURL(qrData) {
+            if (!qrData.startsWith("otpauth://")) {
+                alert("2要素認証用のQRコードではありません。");
+                return;
+            }
+            try {
+                const url = new URL(qrData.replace(/^otpauth:\/\//, 'https://'));
+                const secret = url.searchParams.get('secret');
+                
+                let name = decodeURIComponent(url.pathname.substring(1));
+                name = name.replace(/^totp\//i, ''); 
+                
+                const issuer = url.searchParams.get('issuer');
+                if (issuer && !name.includes(issuer)) {
+                    name = `${issuer} (${name})`;
+                }
+
+                if (secret) {
+                    document.getElementById('input-name').value = name || 'New Account';
+                    document.getElementById('input-secret').value = secret;
+                    alert("QRコードを読み込みました！「追加」ボタンを押して保存してください。");
+                } else {
+                    alert("QRコード内にシークレットキーが見つかりませんでした。");
+                }
+            } catch (e) {
+                alert("QRコードの解析に失敗しました。");
+            }
+        }
+
+        // ==========================================
+        // 2. TOTP 生成処理機能
+        // ==========================================
+        function base32ToUint8Array(base32) {
+            const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+            let bits = "";
+            const str = base32.toUpperCase().replace(/[^A-Z2-7]/g, "");
+            for (let i = 0; i < str.length; i++) {
+                const val = alphabet.indexOf(str.charAt(i));
+                bits += val.toString(2).padStart(5, '0');
+            }
+            const bytes = [];
+            for (let i = 0; i + 8 <= bits.length; i += 8) {
+                bytes.push(parseInt(bits.substr(i, 8), 2));
+            }
+            return new Uint8Array(bytes);
+        }
+
+        async function getTOTP(secret) {
+            try {
+                const keyBytes = base32ToUint8Array(secret);
+                if (keyBytes.length === 0) return "Error";
+
+                const epoch = Math.floor(Date.now() / 1000);
+                const timeStep = Math.floor(epoch / 30);
+                
+                const timeBuffer = new ArrayBuffer(8);
+                const timeView = new DataView(timeBuffer);
+                timeView.setUint32(4, timeStep, false);
+
+                const cryptoKey = await crypto.subtle.importKey(
+                    "raw", keyBytes, { name: "HMAC", hash: "SHA-1" }, false, ["sign"]
+                );
+                const signature = await crypto.subtle.sign("HMAC", cryptoKey, timeBuffer);
+                const hmac = new Uint8Array(signature);
+
+                const offset = hmac[hmac.length - 1] & 0xf;
+                const binary = (
+                    ((hmac[offset] & 0x7f) << 24) |
+                    ((hmac[offset + 1] & 0xff) << 16) |
+                    ((hmac[offset + 2] & 0xff) << 8) |
+                    (hmac[offset + 3] & 0xff)
+                );
+
+                const otp = (binary % 1000000).toString().padStart(6, '0');
+                return otp;
+            } catch (e) {
+                return "Error";
+            }
+        }
+
+        // ==========================================
+        // 3. データ保存・画面表示機能
+        // ==========================================
+        function addAccount() {
+            const name = document.getElementById('input-name').value.trim();
+            const secret = document.getElementById('input-secret').value.trim();
+            if (!name || !secret) return;
+
+            let accounts = JSON.parse(localStorage.getItem('totp_accounts')) || [];
+            if (accounts.length >= 5) {
+                alert("登録できるのは5件までです。");
+                return;
+            }
+            
+            accounts.push({ name, secret });
+            localStorage.setItem('totp_accounts', JSON.stringify(accounts));
+            
+            document.getElementById('input-name').value = '';
+            document.getElementById('input-secret').value = '';
+            updateDisplay();
+        }
+
+        function clearAccounts() {
+            if(confirm("すべて削除しますか？")) {
+                localStorage.removeItem('totp_accounts');
+                updateDisplay();
+            }
+        }
+
+        async function updateDisplay() {
+            const container = document.getElementById('codes-container');
+            const accounts = JSON.parse(localStorage.getItem('totp_accounts')) || [];
+            
+            if (accounts.length === 0) {
+                container.innerHTML = "<p>登録データがありません。</p>";
+                return;
+            }
+
+            let html = "";
+            for (const acc of accounts) {
+                const code = await getTOTP(acc.secret);
+                html += `
+                    <div class="card">
+                        <div>${acc.name}</div>
+                        <div class="code">${code}</div>
+                    </div>
+                `;
+            }
+            container.innerHTML = html;
+        }
+
+        // 初回描画と1秒ごとの更新タイマー
+        updateDisplay();
+        setInterval(updateDisplay, 1000);
+    </script>
+</body>
+</html>
